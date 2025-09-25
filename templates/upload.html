@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Log Food - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="mb-4">
+            <i class="bi bi-camera me-2"></i>Log Your Food
+        </h2>
+
+        <div class="card">
+            <div class="card-body p-4">
+                <!-- Upload Form -->
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-4">
+                        <label for="file" class="form-label">Upload Food Photo</label>
+                        <div class="upload-area border rounded p-4 text-center" id="uploadArea">
+                            <div class="upload-content">
+                                <i class="bi bi-cloud-upload display-1 text-primary mb-3"></i>
+                                <h5>Drop your photo here or click to browse</h5>
+                                <p class="text-muted mb-0">
+                                    Supports JPG, PNG, GIF up to 16MB
+                                </p>
+                            </div>
+                            <input type="file" class="form-control d-none" id="file" name="file"
+                                   accept="image/*" required>
+                        </div>
+                        <div class="form-text">
+                            💡 Tip: Take clear photos with good lighting for better AI recognition
+                        </div>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div class="mb-4 d-none" id="imagePreview">
+                        <label class="form-label">Preview</label>
+                        <div class="text-center">
+                            <img id="previewImg" class="img-fluid rounded shadow-sm" style="max-height: 300px;">
+                        </div>
+                    </div>
+
+                    <!-- Manual Entry Option -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="manualEntry">
+                            <label class="form-check-label" for="manualEntry">
+                                Add manual entry (without photo)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Manual Entry Fields (Hidden by default) -->
+                    <div class="manual-entry-fields d-none" id="manualFields">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">Manual Food Entry</h6>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="manualFoodName" class="form-label">Food Name</label>
+                                            <input type="text" class="form-control" id="manualFoodName"
+                                                   placeholder="e.g. Grilled Chicken">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="manualWeight" class="form-label">Weight (grams)</label>
+                                            <input type="number" class="form-control" id="manualWeight"
+                                                   placeholder="e.g. 150">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="manualCalories" class="form-label">Calories</label>
+                                            <input type="number" class="form-control" id="manualCalories"
+                                                   placeholder="e.g. 250">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="manualTime" class="form-label">Time Consumed</label>
+                                            <input type="datetime-local" class="form-control" id="manualTime">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            <span class="spinner-border spinner-border-sm me-2 d-none" id="loadingSpinner"></span>
+                            <span id="submitText">
+                                <i class="bi bi-magic me-2"></i>Analyze Food
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <i class="bi bi-info-circle me-2"></i>How it works
+                </h6>
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <small class="text-muted">
+                            <strong>1. Upload:</strong> Take or select a photo of your food
+                        </small>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <small class="text-muted">
+                            <strong>2. AI Analysis:</strong> Our AI identifies food and estimates calories
+                        </small>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <small class="text-muted">
+                            <strong>3. Review:</strong> You can edit and confirm the results
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('file');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const submitText = document.getElementById('submitText');
+    const manualEntry = document.getElementById('manualEntry');
+    const manualFields = document.getElementById('manualFields');
+
+    // File upload drag and drop
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('border-primary');
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('border-primary');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('border-primary');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    // Manual entry toggle
+    manualEntry.addEventListener('change', function() {
+        if (this.checked) {
+            manualFields.classList.remove('d-none');
+            fileInput.required = false;
+            // Set current time
+            document.getElementById('manualTime').value = new Date().toISOString().slice(0, 16);
+        } else {
+            manualFields.classList.add('d-none');
+            fileInput.required = true;
+        }
+    });
+
+    function handleFileSelect(file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file.');
+            return;
+        }
+
+        // Validate file size (16MB)
+        if (file.size > 16 * 1024 * 1024) {
+            alert('File size must be less than 16MB.');
+            return;
+        }
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            imagePreview.classList.remove('d-none');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        // Show loading state
+        submitBtn.disabled = true;
+        loadingSpinner.classList.remove('d-none');
+        submitText.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Analyzing...';
+    });
+});
+</script>
+
+<style>
+.upload-area {
+    border: 2px dashed #dee2e6;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #0d6efd;
+}
+
+.upload-area.border-primary {
+    border-color: #0d6efd !important;
+}
+</style>
+{% endblock %}

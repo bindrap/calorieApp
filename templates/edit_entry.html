@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Food Entry - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="mb-4">
+            <i class="bi bi-pencil me-2"></i>Edit Food Entry
+        </h2>
+
+        <div class="row">
+            <!-- Image Preview (if available) -->
+            {% if entry.image_filename %}
+            <div class="col-md-5 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">Original Photo</h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <img src="{{ url_for('static', filename='uploads/' + entry.image_filename) }}"
+                             class="img-fluid rounded" alt="Food photo">
+                    </div>
+                </div>
+
+                {% if entry.ai_confidence_score %}
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">AI Analysis</h6>
+                        <div class="mb-2">
+                            <small class="text-muted">Confidence Score:</small>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar"
+                                     style="width: {{ (entry.ai_confidence_score * 100)|round(0) }}%">
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ (entry.ai_confidence_score * 100)|round(1) }}%</small>
+                        </div>
+                        {% if entry.original_ai_food_name %}
+                        <small class="text-muted">
+                            <strong>AI Detected:</strong> {{ entry.original_ai_food_name }}
+                        </small>
+                        {% endif %}
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="showAnalysisDebug()">
+                                <i class="bi bi-bug me-1"></i>Debug Analysis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Edit Form -->
+            <div class="col-md-{% if entry.image_filename %}7{% else %}12{% endif %}">
+                <div class="card">
+                    <div class="card-body">
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="food_name" class="form-label">Food Name *</label>
+                                <input type="text" class="form-control" id="food_name" name="food_name"
+                                       value="{{ entry.food_name }}" required>
+                                <div class="form-text">
+                                    Correct the food name if AI got it wrong
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="weight" class="form-label">Weight (grams)</label>
+                                        <input type="number" class="form-control" id="weight" name="weight"
+                                               value="{{ entry.actual_weight_grams or entry.estimated_weight_grams or '' }}"
+                                               step="0.1" min="0">
+                                        <div class="form-text">
+                                            {% if entry.estimated_weight_grams %}
+                                                AI estimated: {{ entry.estimated_weight_grams }}g
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="calories" class="form-label">Calories *</label>
+                                        <input type="number" class="form-control" id="calories" name="calories"
+                                               value="{{ entry.calories }}" required step="0.1" min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Macronutrients -->
+                            <div class="card bg-light mb-3">
+                                <div class="card-body">
+                                    <h6 class="card-title">Nutritional Information (Optional)</h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3 mb-md-0">
+                                                <label for="protein" class="form-label">Protein (g)</label>
+                                                <input type="number" class="form-control" id="protein" name="protein"
+                                                       value="{{ entry.protein or '' }}" step="0.1" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3 mb-md-0">
+                                                <label for="carbs" class="form-label">Carbs (g)</label>
+                                                <input type="number" class="form-control" id="carbs" name="carbs"
+                                                       value="{{ entry.carbs or '' }}" step="0.1" min="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="mb-3 mb-md-0">
+                                                <label for="fat" class="form-label">Fat (g)</label>
+                                                <input type="number" class="form-control" id="fat" name="fat"
+                                                       value="{{ entry.fat or '' }}" step="0.1" min="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Time Consumed -->
+                            <div class="mb-4">
+                                <label for="consumed_at" class="form-label">Time Consumed</label>
+                                <input type="datetime-local" class="form-control" id="consumed_at" name="consumed_at"
+                                       value="{{ entry.consumed_at.strftime('%Y-%m-%dT%H:%M') }}">
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-lg me-2"></i>Update Entry
+                                </button>
+                                <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i>Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Food Search Helper -->
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-search me-2"></i>Food Database Search
+                        </h6>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="foodSearch"
+                                   placeholder="Search for similar foods...">
+                            <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                                Search
+                            </button>
+                        </div>
+                        <div id="searchResults" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Debug Analysis Modal -->
+<div class="modal fade" id="debugModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-bug me-2"></i>AI Analysis Debug Information
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="debugContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2">Loading analysis details...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const foodSearch = document.getElementById('foodSearch');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchResults = document.getElementById('searchResults');
+
+    // Auto-calculate calories based on weight and food type
+    const weightInput = document.getElementById('weight');
+    const caloriesInput = document.getElementById('calories');
+    const foodNameInput = document.getElementById('food_name');
+
+    function searchFood() {
+        const query = foodSearch.value.trim();
+        if (query.length < 2) {
+            searchResults.innerHTML = '';
+            return;
+        }
+
+        fetch(`/api/search_food?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(foods => {
+                displaySearchResults(foods);
+            })
+            .catch(error => {
+                console.error('Food search failed:', error);
+                searchResults.innerHTML = '<div class="text-danger">Search failed. Please try again.</div>';
+            });
+    }
+
+    function displaySearchResults(foods) {
+        if (foods.length === 0) {
+            searchResults.innerHTML = '<div class="text-muted">No foods found</div>';
+            return;
+        }
+
+        let html = '<div class="list-group list-group-flush">';
+        foods.forEach(food => {
+            html += `
+                <a href="#" class="list-group-item list-group-item-action food-suggestion"
+                   data-name="${food.name}"
+                   data-calories="${food.calories_per_100g}"
+                   data-protein="${food.protein_per_100g}"
+                   data-carbs="${food.carbs_per_100g}"
+                   data-fat="${food.fat_per_100g}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${food.name}</h6>
+                        <small class="text-muted">${food.calories_per_100g} cal/100g</small>
+                    </div>
+                    <small class="text-muted">
+                        P: ${food.protein_per_100g}g | C: ${food.carbs_per_100g}g | F: ${food.fat_per_100g}g
+                    </small>
+                </a>
+            `;
+        });
+        html += '</div>';
+        searchResults.innerHTML = html;
+
+        // Add click handlers to suggestions
+        document.querySelectorAll('.food-suggestion').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const name = this.dataset.name;
+                const caloriesPer100g = parseFloat(this.dataset.calories);
+                const protein = parseFloat(this.dataset.protein);
+                const carbs = parseFloat(this.dataset.carbs);
+                const fat = parseFloat(this.dataset.fat);
+
+                // Update form fields
+                foodNameInput.value = name;
+
+                // Calculate calories based on current weight
+                const weight = parseFloat(weightInput.value) || 100;
+                caloriesInput.value = Math.round(caloriesPer100g * weight / 100);
+                document.getElementById('protein').value = Math.round(protein * weight / 100 * 10) / 10;
+                document.getElementById('carbs').value = Math.round(carbs * weight / 100 * 10) / 10;
+                document.getElementById('fat').value = Math.round(fat * weight / 100 * 10) / 10;
+
+                searchResults.innerHTML = '';
+                foodSearch.value = '';
+            });
+        });
+    }
+
+    // Event listeners
+    searchBtn.addEventListener('click', searchFood);
+    foodSearch.addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            searchFood();
+        } else {
+            // Debounced search
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(searchFood, 500);
+        }
+    });
+
+    // Auto-update calories when weight changes
+    weightInput.addEventListener('input', function() {
+        const currentCalories = parseFloat(caloriesInput.value) || 0;
+        const currentWeight = parseFloat(this.value) || 100;
+
+        // Try to maintain calories per 100g ratio
+        if (currentCalories > 0 && this.dataset.lastWeight) {
+            const lastWeight = parseFloat(this.dataset.lastWeight);
+            const caloriesPer100g = (currentCalories * 100) / lastWeight;
+            caloriesInput.value = Math.round(caloriesPer100g * currentWeight / 100);
+        }
+
+        this.dataset.lastWeight = currentWeight;
+    });
+
+    // Initialize
+    if (weightInput.value) {
+        weightInput.dataset.lastWeight = weightInput.value;
+    }
+});
+
+function showAnalysisDebug() {
+    const entryId = {{ entry.id }};
+    const modal = new bootstrap.Modal(document.getElementById('debugModal'));
+    const debugContent = document.getElementById('debugContent');
+
+    // Show modal immediately with loading
+    modal.show();
+
+    // Reset to loading state
+    debugContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-2">Loading analysis details...</div>
+        </div>
+    `;
+
+    // Fetch analysis details
+    fetch(`/api/analysis_log/${entryId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            debugContent.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-info-circle me-2"></i>Final Results</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Food Name:</strong></td><td>${data.food_name}</td></tr>
+                            <tr><td><strong>Weight:</strong></td><td>${data.weight_grams}g</td></tr>
+                            <tr><td><strong>Calories:</strong></td><td>${data.calories}</td></tr>
+                            <tr><td><strong>Protein:</strong></td><td>${data.protein}g</td></tr>
+                            <tr><td><strong>Carbs:</strong></td><td>${data.carbs}g</td></tr>
+                            <tr><td><strong>Fat:</strong></td><td>${data.fat}g</td></tr>
+                        </table>
+
+                        <h6><i class="bi bi-clock me-2"></i>Processing Info</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>Data Source:</strong></td><td><span class="badge bg-primary">${data.data_source}</span></td></tr>
+                            <tr><td><strong>AI Confidence:</strong></td><td>${(data.ai_confidence * 100).toFixed(1)}%</td></tr>
+                            <tr><td><strong>Processing Time:</strong></td><td>${data.processing_time_ms}ms</td></tr>
+                            <tr><td><strong>Identified Foods:</strong></td><td>${data.identified_foods.join(', ') || 'None'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-gear me-2"></i>Analysis Logic</h6>
+
+                        <div class="mb-3">
+                            <strong>Weight Estimation:</strong>
+                            <div class="bg-light p-2 rounded small">
+                                ${data.weight_estimation_logic || 'No details available'}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <strong>Calorie Calculation:</strong>
+                            <div class="bg-light p-2 rounded small">
+                                ${data.calorie_calculation_steps || 'No details available'}
+                            </div>
+                        </div>
+
+                        ${data.fallback_reasoning ? `
+                        <div class="mb-3">
+                            <strong>Fallback Reasoning:</strong>
+                            <div class="bg-warning p-2 rounded small">
+                                ${data.fallback_reasoning}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        ${data.errors_encountered ? `
+                        <div class="mb-3">
+                            <strong>Errors:</strong>
+                            <div class="bg-danger text-white p-2 rounded small">
+                                ${data.errors_encountered}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="mt-3">
+                            <small class="text-muted">Analysis completed: ${new Date(data.created_at).toLocaleString()}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            console.error('Failed to load analysis details:', error);
+            debugContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6>Error Loading Analysis Details</h6>
+                    <p>${error.message || 'Unable to load analysis information. This may be a new entry without debug logs.'}</p>
+                </div>
+            `;
+        });
+}
+</script>
+{% endblock %}

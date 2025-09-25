@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+calorie_env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Database (will be created in container)
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+.dockerignore
+Dockerfile*
+docker-compose*.yml
+
+# Documentation
+README.md
+FIXES_COMPLETED.md
+CLAUDE.md
+
+# Test files
+test_*.py
+*_test.py
+
+# Archives and uploads (will be mounted as volumes)
+archives/
+data/

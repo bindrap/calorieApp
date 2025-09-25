@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-gear me-2"></i>Settings
+            </h2>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-target me-2"></i>Daily Goals
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="calorie_goal" class="form-label">Daily Calorie Goal</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="calorie_goal" name="calorie_goal"
+                                       value="{{ user_goals.calorie_goal if user_goals else 3000 }}"
+                                       min="1000" max="10000" required>
+                                <span class="input-group-text">cal</span>
+                            </div>
+                            <div class="form-text">Recommended: 2000-3000 calories per day</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="protein_goal" class="form-label">Daily Protein Goal</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="protein_goal" name="protein_goal"
+                                       value="{{ user_goals.protein_goal if user_goals else 160 }}"
+                                       min="20" max="500" required>
+                                <span class="input-group-text">g</span>
+                            </div>
+                            <div class="form-text">Recommended: 0.8-2.2g per kg body weight</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fat_goal" class="form-label">Daily Fat Goal</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="fat_goal" name="fat_goal"
+                                       value="{{ user_goals.fat_goal if user_goals else 100 }}"
+                                       min="20" max="300" required>
+                                <span class="input-group-text">g</span>
+                            </div>
+                            <div class="form-text">Recommended: 20-35% of total calories</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="carb_goal" class="form-label">Daily Carb Goal</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="carb_goal" name="carb_goal"
+                                       value="{{ user_goals.carb_goal if user_goals else 375 }}"
+                                       min="50" max="800" required>
+                                <span class="input-group-text">g</span>
+                            </div>
+                            <div class="form-text">Recommended: 45-65% of total calories</div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-2"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Progress Preview -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Goal Preview
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="h4 text-primary">{{ user_goals.calorie_goal if user_goals else 3000 }}</div>
+                        <div class="text-muted small">Calories/day</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h4 text-success">{{ user_goals.protein_goal if user_goals else 160 }}g</div>
+                        <div class="text-muted small">Protein/day</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h4 text-warning">{{ user_goals.fat_goal if user_goals else 100 }}g</div>
+                        <div class="text-muted small">Fat/day</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h4 text-info">{{ user_goals.carb_goal if user_goals else 375 }}g</div>
+                        <div class="text-muted small">Carbs/day</div>
+                    </div>
+                </div>
+                <hr>
+                <p class="text-muted text-center mb-0">
+                    <small>These goals will be used to calculate your daily progress bars and statistics.</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-calculate macro percentages
+document.addEventListener('DOMContentLoaded', function() {
+    const calorieInput = document.getElementById('calorie_goal');
+    const proteinInput = document.getElementById('protein_goal');
+    const fatInput = document.getElementById('fat_goal');
+    const carbInput = document.getElementById('carb_goal');
+
+    function updateMacroSuggestions() {
+        const calories = parseInt(calorieInput.value) || 3000;
+
+        // Update form text with percentage-based suggestions
+        const proteinCals = Math.round(calories * 0.20 / 4); // 20% of calories, 4 cal/g
+        const fatCals = Math.round(calories * 0.30 / 9); // 30% of calories, 9 cal/g
+        const carbCals = Math.round(calories * 0.50 / 4); // 50% of calories, 4 cal/g
+
+        proteinInput.placeholder = `Suggested: ${proteinCals}g`;
+        fatInput.placeholder = `Suggested: ${fatCals}g`;
+        carbInput.placeholder = `Suggested: ${carbCals}g`;
+    }
+
+    calorieInput.addEventListener('input', updateMacroSuggestions);
+    updateMacroSuggestions(); // Initial calculation
+});
+</script>
+{% endblock %}

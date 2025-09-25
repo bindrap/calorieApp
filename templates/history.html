@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Food History - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="bi bi-clock-history me-2"></i>Food History
+            </h2>
+            <a href="{{ url_for('upload_food') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-2"></i>Add Entry
+            </a>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Total Entries</h6>
+                                <h4 class="mb-0">{{ entries.total if entries else 0 }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-list-ul fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Today's Calories</h6>
+                                <h4 class="mb-0">{{ history_stats.today_calories if history_stats else 0 }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-fire fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">This Week</h6>
+                                <h4 class="mb-0">{{ history_stats.this_week_entries if history_stats else 0 }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-calendar-week fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">Avg Daily</h6>
+                                <h4 class="mb-0">{{ history_stats.avg_daily_calories if history_stats else 0 }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="bi bi-graph-up fs-1 opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3 align-items-center">
+                    <div class="col-auto">
+                        <label class="form-label">Filter by:</label>
+                    </div>
+                    <div class="col-auto">
+                        <select class="form-select" name="date_filter">
+                            <option value="">All dates</option>
+                            <option value="today">Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="this_week">This week</option>
+                            <option value="last_week">Last week</option>
+                            <option value="this_month">This month</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" class="form-control" name="search"
+                               placeholder="Search food names..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-outline-primary">Filter</button>
+                    </div>
+                    {% if request.args %}
+                    <div class="col-auto">
+                        <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">Clear</a>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+
+        <!-- Food Entries -->
+        {% if entries and entries.items %}
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Food</th>
+                                    <th>Weight</th>
+                                    <th>Calories</th>
+                                    <th>Protein</th>
+                                    <th>Carbs</th>
+                                    <th>Fat</th>
+                                    <th>Date & Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entry in entries.items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if entry.image_filename %}
+                                                <img src="{{ url_for('static', filename='uploads/' + entry.image_filename) }}"
+                                                     class="rounded me-2" width="40" height="40" style="object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-secondary rounded d-flex align-items-center justify-content-center me-2"
+                                                     style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-card-text text-white"></i>
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-medium">{{ entry.food_name }}</div>
+                                                {% if entry.user_corrected %}
+                                                    <small class="text-success">
+                                                        <i class="bi bi-pencil me-1"></i>User edited
+                                                    </small>
+                                                {% elif entry.ai_confidence_score %}
+                                                    <small class="text-muted">
+                                                        AI: {{ (entry.ai_confidence_score * 100)|round(0) }}%
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if entry.actual_weight_grams %}
+                                            {{ entry.actual_weight_grams|round(0) }}g
+                                        {% elif entry.estimated_weight_grams %}
+                                            ~{{ entry.estimated_weight_grams|round(0) }}g
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary rounded-pill">
+                                            {{ entry.calories|round(0)|int }} cal
+                                        </span>
+                                    </td>
+                                    <td>{{ (entry.protein or 0)|round(1) }}g</td>
+                                    <td>{{ (entry.carbs or 0)|round(1) }}g</td>
+                                    <td>{{ (entry.fat or 0)|round(1) }}g</td>
+                                    <td>
+                                        <div>{{ entry.consumed_at.strftime('%b %d, %Y') }}</div>
+                                        <small class="text-muted">{{ entry.consumed_at.strftime('%I:%M %p') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_entry', entry_id=entry.id) }}"
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger btn-sm"
+                                                    onclick="deleteEntry({{ entry.id }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if entries.pages > 1 %}
+            <nav aria-label="Food history pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if entries.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('history', page=entries.prev_num, **request.args) }}">
+                                Previous
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for page_num in entries.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num != entries.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('history', page=page_num, **request.args) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if entries.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('history', page=entries.next_num, **request.args) }}">
+                                Next
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+                    <h4>No food entries found</h4>
+                    <p class="text-muted mb-4">
+                        {% if request.args %}
+                            Try adjusting your filters or search terms.
+                        {% else %}
+                            Start tracking your meals by uploading food photos.
+                        {% endif %}
+                    </p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        {% if request.args %}
+                            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">
+                                Clear Filters
+                            </a>
+                        {% endif %}
+                        <a href="{{ url_for('upload_food') }}" class="btn btn-primary">
+                            <i class="bi bi-camera me-2"></i>Log Your First Meal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete this food entry? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let deleteEntryId = null;
+
+function deleteEntry(entryId) {
+    deleteEntryId = entryId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+document.getElementById('confirmDelete').addEventListener('click', function() {
+    if (deleteEntryId) {
+        // Create a form and submit it to delete the entry
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/delete/${deleteEntryId}`;
+
+        // Add CSRF token if needed
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken.getAttribute('content');
+            form.appendChild(csrfInput);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+        deleteEntryId = null;
+    }
+});
+
+// Auto-submit form on filter change
+document.querySelector('select[name="date_filter"]').addEventListener('change', function() {
+    this.form.submit();
+});
+</script>
+{% endblock %}

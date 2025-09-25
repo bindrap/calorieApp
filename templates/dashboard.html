@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">Welcome back, {{ current_user.username }}!</h2>
+                <p class="text-muted mb-0">Here's your nutrition overview</p>
+            </div>
+            <a href="{{ url_for('upload_food') }}" class="btn btn-primary">
+                <i class="bi bi-camera me-2"></i>Log Food
+            </a>
+        </div>
+
+        <!-- Today's Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-calendar-day me-2"></i>Today's Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="h3 text-primary mb-1" id="today-calories">{{ today_stats.calories if today_stats else 0 }}</div>
+                        <div class="text-muted small">Calories</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="h3 text-success mb-1" id="today-meals">{{ today_stats.meals if today_stats else 0 }}</div>
+                        <div class="text-muted small">Meals</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="h3 text-info mb-1" id="today-protein">{{ today_stats.protein if today_stats else 0 }}g</div>
+                        <div class="text-muted small">Protein</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="h3 text-warning mb-1" id="today-carbs">{{ today_stats.carbs if today_stats else 0 }}g</div>
+                        <div class="text-muted small">Carbs</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Food Entries -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Food Entries</h5>
+                <a href="{{ url_for('history') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_entries %}
+                    <div class="list-group list-group-flush">
+                        {% for entry in recent_entries %}
+                            <div class="list-group-item px-0 d-flex align-items-center">
+                                {% if entry.image_filename %}
+                                    <img src="{{ url_for('static', filename='uploads/' + entry.image_filename) }}"
+                                         class="rounded me-3" width="50" height="50" style="object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-secondary rounded d-flex align-items-center justify-content-center me-3"
+                                         style="width: 50px; height: 50px;">
+                                        <i class="bi bi-card-text text-white"></i>
+                                    </div>
+                                {% endif %}
+
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ entry.food_name }}</h6>
+                                            <small class="text-muted">
+                                                {{ entry.consumed_at.strftime('%b %d at %I:%M %p') }}
+                                                {% if entry.user_corrected %}
+                                                    <span class="badge bg-success ms-1">Edited</span>
+                                                {% elif entry.ai_confidence_score and entry.ai_confidence_score > 0.8 %}
+                                                    <span class="badge bg-info ms-1">High Confidence</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="badge bg-primary">{{ entry.calories|round(0)|int }} cal</div>
+                                            {% if entry.actual_weight_grams or entry.estimated_weight_grams %}
+                                                <div class="small text-muted mt-1">
+                                                    {{ (entry.actual_weight_grams or entry.estimated_weight_grams)|round(0) }}g
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="ms-2">
+                                    <a href="{{ url_for('edit_entry', entry_id=entry.id) }}"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-camera display-1 text-muted"></i>
+                        <h5 class="mt-3">No food entries yet</h5>
+                        <p class="text-muted mb-4">Start tracking your meals by uploading a photo</p>
+                        <a href="{{ url_for('upload_food') }}" class="btn btn-primary">
+                            <i class="bi bi-camera me-2"></i>Log Your First Meal
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Quick Stats -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>Quick Stats
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6 text-center">
+                        <div class="h4 text-success mb-1" id="quick-week">{{ quick_stats.this_week if quick_stats else 0 }}</div>
+                        <div class="small text-muted">This Week</div>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div class="h4 text-info mb-1" id="quick-total">{{ quick_stats.total_logged if quick_stats else 0 }}</div>
+                        <div class="small text-muted">Total Logged</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Daily Goal Progress -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-target me-2"></i>Daily Goals
+                </h6>
+            </div>
+            <div class="card-body">
+                {% set calorie_goal = user_goals.calorie_goal if user_goals else 3000 %}
+                {% set protein_goal = user_goals.protein_goal if user_goals else 160 %}
+                {% set fat_goal = user_goals.fat_goal if user_goals else 100 %}
+                {% set calorie_percent = ((today_stats.calories / calorie_goal * 100) | round(1)) if today_stats else 0 %}
+                {% set protein_percent = ((today_stats.protein / protein_goal * 100) | round(1)) if today_stats else 0 %}
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Calories</small>
+                        <small>{{ today_stats.calories if today_stats else 0 }} / {{ calorie_goal }}</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-primary" style="width: {{ [calorie_percent, 100] | min }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Protein</small>
+                        <small>{{ today_stats.protein if today_stats else 0 }}g / {{ protein_goal }}g</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: {{ [protein_percent, 100] | min }}%"></div>
+                    </div>
+                </div>
+
+                <div class="mb-0">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small>Fat</small>
+                        <small>{{ today_stats.fat if today_stats else 0 }}g</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning" style="width: {{ [(today_stats.fat / fat_goal * 100) | round(1) if today_stats else 0, 100] | min }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tips and Reminders -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-lightbulb me-2"></i>Tips & Reminders
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info py-2 px-3 mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <small>Take clear, well-lit photos for better AI recognition</small>
+                </div>
+
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item px-0 py-2 border-0">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Log meals right after eating</small>
+                    </div>
+                    <div class="list-group-item px-0 py-2 border-0">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Review and correct AI suggestions</small>
+                    </div>
+                    <div class="list-group-item px-0 py-2 border-0">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <small>Include portion sizes when possible</small>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-question-circle me-2"></i>Need Help?
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Dashboard-specific JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Load today's statistics
+    loadTodayStats();
+
+    // Auto-refresh stats every 5 minutes
+    setInterval(loadTodayStats, 5 * 60 * 1000);
+});
+
+function loadTodayStats() {
+    console.log('Loading today\'s stats...');
+
+    // Load today's stats
+    fetch('/api/stats/today')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('today-calories').textContent = data.calories || 0;
+            document.getElementById('today-meals').textContent = data.meals || 0;
+            document.getElementById('today-protein').textContent = (data.protein || 0) + 'g';
+            document.getElementById('today-carbs').textContent = (data.carbs || 0) + 'g';
+
+            // Update progress bars
+            updateProgressBars(data);
+        })
+        .catch(error => console.error('Error loading today stats:', error));
+
+    // Load quick stats
+    fetch('/api/stats/quick')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('quick-week').textContent = data.this_week || 0;
+            document.getElementById('quick-total').textContent = data.total_logged || 0;
+        })
+        .catch(error => console.error('Error loading quick stats:', error));
+}
+
+function updateProgressBars(todayStats) {
+    const calorieGoal = {{ user_goals.calorie_goal if user_goals else 3000 }};
+    const proteinGoal = {{ user_goals.protein_goal if user_goals else 160 }};
+    const fatGoal = {{ user_goals.fat_goal if user_goals else 100 }};
+
+    // Update calorie progress
+    const caloriePercent = Math.min((todayStats.calories / calorieGoal) * 100, 100);
+    const calorieBar = document.querySelector('.progress-bar.bg-primary');
+    if (calorieBar) {
+        calorieBar.style.width = caloriePercent + '%';
+        calorieBar.parentElement.previousElementSibling.querySelector('small:last-child').textContent =
+            `${todayStats.calories || 0} / ${calorieGoal}`;
+    }
+
+    // Update protein progress
+    const proteinPercent = Math.min((todayStats.protein / proteinGoal) * 100, 100);
+    const proteinBar = document.querySelector('.progress-bar.bg-success');
+    if (proteinBar) {
+        proteinBar.style.width = proteinPercent + '%';
+        proteinBar.parentElement.previousElementSibling.querySelector('small:last-child').textContent =
+            `${todayStats.protein || 0}g / ${proteinGoal}g`;
+    }
+
+    // Update fat progress
+    const fatPercent = Math.min((todayStats.fat / fatGoal) * 100, 100);
+    const fatBar = document.querySelector('.progress-bar.bg-warning');
+    if (fatBar) {
+        fatBar.style.width = fatPercent + '%';
+        fatBar.parentElement.previousElementSibling.querySelector('small:last-child').textContent =
+            `${todayStats.fat || 0}g`;
+    }
+}
+</script>
+{% endblock %}

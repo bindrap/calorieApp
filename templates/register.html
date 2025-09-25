@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <h3 class="card-title">Create Account</h3>
+                    <p class="text-muted">Join thousands tracking their nutrition</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('register') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required
+                               placeholder="Choose a username">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required
+                               placeholder="your@email.com">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required
+                               placeholder="Create a strong password">
+                        <div class="form-text">
+                            Password should be at least 8 characters long
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-person-plus me-2"></i>Create Account
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p class="mb-0">Already have an account?</p>
+                    <a href="{{ url_for('login') }}" class="btn btn-link">Sign In</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features List -->
+        <div class="mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">What you'll get:</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            AI-powered food recognition
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Automatic calorie calculation
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Nutrition tracking & history
+                        </li>
+                        <li class="mb-0">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            Free forever account
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const password = document.getElementById('password');
+
+    form.addEventListener('submit', function(e) {
+        if (password.value.length < 8) {
+            e.preventDefault();
+            alert('Password must be at least 8 characters long');
+            password.focus();
+        }
+    });
+});
+</script>
+{% endblock %}

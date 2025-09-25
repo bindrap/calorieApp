@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <h3 class="card-title">Welcome Back</h3>
+                    <p class="text-muted">Sign in to continue tracking</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required
+                               placeholder="Enter your username">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required
+                               placeholder="Enter your password">
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p class="mb-0">Don't have an account?</p>
+                    <a href="{{ url_for('register') }}" class="btn btn-link">Create Account</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Demo -->
+        <div class="mt-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="card-title">
+                        <i class="bi bi-lightbulb text-warning me-2"></i>
+                        Quick Demo
+                    </h6>
+                    <p class="card-text small mb-2">
+                        New to the app? Create an account and upload a food photo to see AI recognition in action!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  calorie-tracker:
+    build: .
+    container_name: calorie-tracker
+    ports:
+      - "5151:5151"
+    volumes:
+      # Persistent storage for all data including database, uploads, and archives
+      - ./data:/app/data
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      - TZ=America/Toronto
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5151/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - calorie-network
+
+networks:
+  calorie-network:
+    driver: bridge
+
+volumes:
+  uploads:
+  archives:
+  database:
