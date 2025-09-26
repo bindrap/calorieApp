@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile - Calorie Tracker</title>
+    <title>Profile - Koombi</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Calorie Tracker</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">Koombi</a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
                 <a class="nav-link" href="{{ url_for('log_workout') }}">Log Workout</a>
@@ -26,22 +26,40 @@
                         <h3>User Profile & Settings</h3>
                     </div>
                     <div class="card-body">
-                        <form method="POST">
+                        <form method="POST" enctype="multipart/form-data">
                             <div class="row">
                                 <div class="col-md-6">
                                     <h5>Personal Information</h5>
 
                                     <div class="mb-3">
-                                        <label for="weight_kg" class="form-label">Weight (kg) *</label>
-                                        <input type="number" step="0.1" class="form-control" id="weight_kg" name="weight_kg"
-                                               value="{{ settings.weight_kg if settings else '' }}" required>
+                                        <label for="weight_lbs" class="form-label">Weight (lbs) *</label>
+                                        <input type="number" step="0.1" class="form-control" id="weight_lbs" name="weight_lbs"
+                                               value="{{ (settings.weight_kg|float * 2.20462)|round(1) if settings and settings.weight_kg else '' }}" required>
                                         <small class="text-muted">Required for workout calorie calculations</small>
                                     </div>
 
                                     <div class="mb-3">
-                                        <label for="height_cm" class="form-label">Height (cm)</label>
-                                        <input type="number" step="0.1" class="form-control" id="height_cm" name="height_cm"
-                                               value="{{ settings.height_cm if settings else '' }}">
+                                        <label class="form-label">Height</label>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label for="height_feet" class="form-label">Feet</label>
+                                                <select class="form-select" id="height_feet" name="height_feet">
+                                                    <option value="">-</option>
+                                                    {% for ft in range(3, 9) %}
+                                                        <option value="{{ ft }}" {{ 'selected' if settings and settings.height_cm and (settings.height_cm|float / 30.48)|int == ft else '' }}>{{ ft }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-6">
+                                                <label for="height_inches" class="form-label">Inches</label>
+                                                <select class="form-select" id="height_inches" name="height_inches">
+                                                    <option value="">-</option>
+                                                    {% for inch in range(0, 12) %}
+                                                        <option value="{{ inch }}" {{ 'selected' if settings and settings.height_cm and ((settings.height_cm|float / 2.54)|int % 12) == inch else '' }}>{{ inch }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="mb-3">
@@ -90,6 +108,83 @@
                                 </div>
                             </div>
 
+                            <!-- Background Settings -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5>Background Settings</h5>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Background Type</label>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="background_type" id="bg_default" value="default"
+                                                       {{ 'checked' if not settings or not settings.background_type or settings.background_type == 'default' else '' }}
+                                                       onchange="toggleBackgroundOptions()">
+                                                <label class="form-check-label" for="bg_default">
+                                                    Default Gradient
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="background_type" id="bg_preset" value="preset"
+                                                       {{ 'checked' if settings and settings.background_type == 'preset' else '' }}
+                                                       onchange="toggleBackgroundOptions()">
+                                                <label class="form-check-label" for="bg_preset">
+                                                    Preset Backgrounds
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="background_type" id="bg_custom" value="custom"
+                                                       {{ 'checked' if settings and settings.background_type == 'custom' else '' }}
+                                                       onchange="toggleBackgroundOptions()">
+                                                <label class="form-check-label" for="bg_custom">
+                                                    Upload Custom Background
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Preset Background Selection -->
+                                        <div id="preset_options" class="mb-3" style="display: none;">
+                                            <label for="preset_background" class="form-label">Choose Preset Background</label>
+                                            <div class="row">
+                                                {% for bg in preset_backgrounds %}
+                                                <div class="col-md-4 mb-3">
+                                                    <div class="card">
+                                                        <img src="{{ url_for('static', filename='backgrounds/' + bg) }}"
+                                                             class="card-img-top" style="height: 120px; object-fit: cover;">
+                                                        <div class="card-body text-center p-2">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="radio" name="preset_background"
+                                                                       id="preset_{{ loop.index }}" value="{{ bg }}"
+                                                                       {{ 'checked' if settings and settings.background_filename == bg else '' }}>
+                                                                <label class="form-check-label small" for="preset_{{ loop.index }}">
+                                                                    {{ bg.replace('.jpg', '').replace('_', ' ').title() }}
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+
+                                        <!-- Custom Background Upload -->
+                                        <div id="custom_options" class="mb-3" style="display: none;">
+                                            <label for="background_upload" class="form-label">Upload Custom Background</label>
+                                            <input class="form-control" type="file" id="background_upload" name="background_upload"
+                                                   accept="image/*">
+                                            <div class="form-text">
+                                                Upload an image to use as your custom background. Recommended size: 1920x1080 or larger.
+                                            </div>
+                                            {% if settings and settings.background_type == 'custom' and settings.background_filename %}
+                                            <div class="mt-2">
+                                                <small class="text-muted">Current custom background: {{ settings.background_filename }}</small>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">Update Profile</button>
                             </div>
@@ -110,5 +205,30 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function toggleBackgroundOptions() {
+            const presetDiv = document.getElementById('preset_options');
+            const customDiv = document.getElementById('custom_options');
+            const bgPreset = document.getElementById('bg_preset');
+            const bgCustom = document.getElementById('bg_custom');
+
+            // Hide all options first
+            presetDiv.style.display = 'none';
+            customDiv.style.display = 'none';
+
+            // Show relevant option
+            if (bgPreset.checked) {
+                presetDiv.style.display = 'block';
+            } else if (bgCustom.checked) {
+                customDiv.style.display = 'block';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleBackgroundOptions();
+        });
+    </script>
 </body>
 </html>

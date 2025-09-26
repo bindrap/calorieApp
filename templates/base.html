@@ -2,70 +2,342 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>{% block title %}Calorie Tracker{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>{% block title %}Koombi{% endblock %}</title>
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#0d6efd">
+    <meta name="theme-color" content="#198754">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="CalorieApp">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CalTracker">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="CalorieApp">
-    <meta name="msapplication-TileColor" content="#0d6efd">
+    <meta name="application-name" content="CalTracker">
+    <meta name="msapplication-TileColor" content="#198754">
+    <meta name="msapplication-navbutton-color" content="#198754">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon-16x16.png') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='android-chrome-192x192.png') }}">
+    <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='android-chrome-512x512.png') }}">
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 
-    <!-- PWA Install Styles -->
+    <!-- Mobile-first optimizations -->
     <style>
-        /* PWA install banner hidden by default */
+        :root {
+            --primary-color: #198754;
+            --primary-hover: #146c43;
+            --safe-area-bottom: env(safe-area-inset-bottom, 0);
+            --safe-area-top: env(safe-area-inset-top, 0);
+        }
+
+        /* Mobile-first base styles */
+        body {
+            font-size: 16px; /* Prevent zoom on iOS */
+            -webkit-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: var(--safe-area-bottom);
+            padding-top: var(--safe-area-top);
+            background: {{ user_background }};
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Subtle background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(0, 150, 150, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(0, 200, 180, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(0, 100, 120, 0.06) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* Frosted glass buttons */
+        .btn {
+            min-height: 44px; /* iOS guidelines */
+            padding: 12px 16px;
+            font-size: 16px;
+            border-radius: 12px;
+            touch-action: manipulation;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            color: rgba(0, 0, 0, 0.9);
+            font-weight: 600;
+            transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            color: rgba(0, 0, 0, 1);
+        }
+
+        .btn-primary {
+            background: rgba(13, 110, 253, 0.8);
+            border-color: rgba(13, 110, 253, 0.9);
+        }
+
+        .btn-primary:hover {
+            background: rgba(13, 110, 253, 0.9);
+            border-color: rgba(13, 110, 253, 1);
+        }
+
+        .btn-sm {
+            min-height: 36px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        /* Form controls optimized for mobile */
+        .form-control, .form-select {
+            min-height: 44px;
+            font-size: 16px; /* Prevent zoom on iOS */
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            transition: border-color 0.15s ease-in-out;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+        }
+
+        /* Frosted glass navigation */
+        .navbar {
+            padding: 0.75rem 0;
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .navbar-brand, .nav-link {
+            color: rgba(0, 0, 0, 0.9) !important;
+            text-shadow: none;
+            font-weight: 600;
+        }
+
+        .navbar-toggler {
+            border: 2px solid rgba(0, 0, 0, 0.8);
+            padding: 0.5rem;
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='3' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        .nav-link:hover {
+            color: rgba(0, 0, 0, 1) !important;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+        }
+
+        .navbar-brand {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .navbar-toggler {
+            border: none;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        /* Frosted glass cards */
+        .card {
+            border: none;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow:
+                0 12px 40px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+        }
+
+        .card-header {
+            background: rgba(255, 255, 255, 0.9);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 16px 16px 0 0 !important;
+            padding: 1.25rem;
+        }
+
+        .card-body {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 0 0 16px 16px;
+        }
+
+        /* Better text contrast */
+        .card h1, .card h2, .card h3, .card h4, .card h5, .card h6 {
+            color: rgba(0, 0, 0, 0.9);
+            font-weight: 600;
+        }
+
+        .card .text-muted {
+            color: rgba(0, 0, 0, 0.6) !important;
+        }
+
+        /* Container spacing for mobile */
+        .container {
+            padding-left: 16px;
+            padding-right: 16px;
+            max-width: 100%;
+        }
+
+        /* Frosted glass list items */
+        .list-group-item {
+            padding: 1rem;
+            border-radius: 12px !important;
+            margin-bottom: 0.75rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .list-group-item:hover {
+            background: rgba(255, 255, 255, 0.95);
+            transform: translateX(2px);
+        }
+
+        /* Progress bars */
+        .progress {
+            height: 12px;
+            border-radius: 6px;
+        }
+
+        /* Badges */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.5em 0.75em;
+            border-radius: 6px;
+        }
+
+        /* PWA install banner */
         .pwa-install-banner {
             display: none;
             position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: #0d6efd;
+            bottom: 16px;
+            left: 16px;
+            right: 16px;
+            background: var(--primary-color);
             color: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
             z-index: 9999;
+            animation: slideUp 0.3s ease;
         }
 
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-            .container { padding-left: 10px; padding-right: 10px; }
-            .btn { padding: 8px 12px; font-size: 14px; }
-            .card { margin-bottom: 15px; }
-            .navbar-brand { font-size: 1.1rem; }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
-        /* iOS safe area handling */
-        @supports (padding: max(0px)) {
-            .navbar { padding-left: max(15px, env(safe-area-inset-left)); }
-            .container { padding-left: max(15px, env(safe-area-inset-left)); padding-right: max(15px, env(safe-area-inset-right)); }
+        /* Frosted glass footer */
+        footer {
+            padding-bottom: calc(1.5rem + var(--safe-area-bottom));
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        /* Hide scrollbars but keep functionality */
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        *::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Desktop adjustments */
+        @media (min-width: 768px) {
+            .container {
+                padding-left: 15px;
+                padding-right: 15px;
+                max-width: 1140px;
+            }
+
+            .btn {
+                min-height: auto;
+                padding: 0.375rem 0.75rem;
+                font-size: 1rem;
+            }
+
+            .form-control, .form-select {
+                min-height: auto;
+                font-size: 1rem;
+            }
+        }
+
+        /* Offline indicator */
+        .offline-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #dc3545;
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 10000;
+            transform: translateY(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .offline-indicator.show {
+            transform: translateY(0);
         }
     </style>
 </head>
 <body>
+    <!-- Offline Indicator -->
+    <div id="offline-indicator" class="offline-indicator">
+        <i class="bi bi-wifi-off me-2"></i>You're offline - some features may not work
+    </div>
+
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="bi bi-camera-fill me-2"></i>Calorie Tracker
+                <img src="{{ url_for('static', filename='favicon-32x32.png') }}" alt="Koombi" width="24" height="24" class="me-2">
+                Koombi
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -92,7 +364,12 @@
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('history') }}">
-                                <i class="bi bi-clock-history me-1"></i>History
+                                <i class="bi bi-clock-history me-1"></i>Food History
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('workout_history') }}">
+                                <i class="bi bi-graph-up me-1"></i>Workout History
                             </a>
                         </li>
                     {% endif %}
@@ -105,7 +382,9 @@
                                 <i class="bi bi-person-circle me-1"></i>{{ current_user.username }}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person me-2"></i>Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person me-2"></i>Profile & Settings</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('workout_history') }}"><i class="bi bi-graph-up me-2"></i>Workout History</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('history') }}"><i class="bi bi-clock-history me-2"></i>Food History</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                             </ul>
@@ -146,7 +425,7 @@
     <footer class="bg-light text-center py-4 mt-5">
         <div class="container">
             <p class="mb-0 text-muted">
-                &copy; 2025 Calorie Tracker - AI-Powered Food Recognition
+                &copy; 2025 Koombi - AI-Powered Food Recognition
             </p>
         </div>
     </footer>
@@ -167,8 +446,116 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <!-- PWA and Mobile JavaScript -->
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // PWA Install Banner
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('pwa-install-btn');
+        const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Check if already dismissed
+            if (!localStorage.getItem('pwa-dismissed')) {
+                installBanner.style.display = 'block';
+            }
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', (e) => {
+                installBanner.style.display = 'none';
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        }
+
+        if (dismissBtn) {
+            dismissBtn.addEventListener('click', (e) => {
+                installBanner.style.display = 'none';
+                localStorage.setItem('pwa-dismissed', 'true');
+            });
+        }
+
+        // Online/Offline Detection
+        const offlineIndicator = document.getElementById('offline-indicator');
+
+        function updateOnlineStatus() {
+            if (navigator.onLine) {
+                offlineIndicator.classList.remove('show');
+            } else {
+                offlineIndicator.classList.add('show');
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus(); // Check initial status
+
+        // Prevent iOS safari bounce scroll
+        document.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Mobile viewport height fix
+        function setViewportHeight() {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+
+        setViewportHeight();
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(setViewportHeight, 100);
+        });
+
+        // Touch feedback for buttons
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('btn')) {
+                e.target.style.transform = 'scale(0.98)';
+            }
+        });
+
+        document.addEventListener('touchend', function(e) {
+            if (e.target.classList.contains('btn')) {
+                setTimeout(() => {
+                    e.target.style.transform = 'scale(1)';
+                }, 100);
+            }
+        });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

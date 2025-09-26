@@ -103,3 +103,12 @@ BASE_URL = "https://ollama.com"
 ✅ **Extensible**: Easy to add vision API when available
 
 The application is now **fully functional** and ready for production use!
+
+
+Testing out how to work in neovim
+    - this could be a note that I wrote in neovim
+        - i can add subtopics to items
+    - come back to another point 
+    - it's pretty easy to use just need to figure out some things 
+
+

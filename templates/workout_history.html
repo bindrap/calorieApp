@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Workout History - Koombi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">Workout History</h2>
+                <p class="text-muted mb-0">Track your fitness progress over time</p>
+            </div>
+            <a href="{{ url_for('log_workout') }}" class="btn btn-success">
+                <i class="bi bi-lightning me-2"></i>Log New Workout
+            </a>
+        </div>
+
+        <!-- Workout Stats Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>Workout Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4 mb-3">
+                        <div class="h3 text-success mb-1">{{ workout_stats.total_workouts }}</div>
+                        <div class="text-muted small">Total Workouts</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="h3 text-danger mb-1">{{ workout_stats.total_calories_burned }}</div>
+                        <div class="text-muted small">Total Calories Burned</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="h3 text-info mb-1">{{ workout_stats.avg_calories_per_workout }}</div>
+                        <div class="text-muted small">Avg Calories per Workout</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workout History List -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Workouts</h5>
+            </div>
+            <div class="card-body">
+                {% if workouts.items %}
+                    <div class="list-group list-group-flush">
+                        {% for workout in workouts.items %}
+                            <div class="list-group-item px-0 d-flex align-items-center">
+                                <div class="bg-success rounded d-flex align-items-center justify-content-center me-3"
+                                     style="width: 50px; height: 50px;">
+                                    <i class="bi bi-lightning-fill text-white"></i>
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ workout.activity_type }}</h6>
+                                            <small class="text-muted">
+                                                {{ workout.logged_at.strftime('%b %d at %I:%M %p') }}
+                                                <span class="badge bg-{{ 'warning' if workout.intensity == 'light' else ('info' if workout.intensity == 'moderate' else 'danger') }} ms-2">
+                                                    {{ workout.intensity.title() }} Intensity
+                                                </span>
+                                                {% if workout.exertion_rating %}
+                                                <span class="badge bg-secondary ms-1">
+                                                    Exertion: {{ workout.exertion_rating }}/10
+                                                </span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="badge bg-danger mb-1">{{ workout.calories_burned|round(0)|int }} cal burned</div>
+                                            <div class="small text-muted">
+                                                {{ workout.duration_minutes }} minutes
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if workouts.pages > 1 %}
+                        <nav class="mt-4">
+                            <ul class="pagination justify-content-center">
+                                {% if workouts.has_prev %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('workout_history', page=workouts.prev_num) }}">Previous</a>
+                                    </li>
+                                {% endif %}
+
+                                {% for page_num in workouts.iter_pages() %}
+                                    {% if page_num %}
+                                        {% if page_num != workouts.page %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('workout_history', page=page_num) }}">{{ page_num }}</a>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ page_num }}</span>
+                                            </li>
+                                        {% endif %}
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if workouts.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('workout_history', page=workouts.next_num) }}">Next</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-lightning display-1 text-muted mb-3"></i>
+                        <h5 class="text-muted">No workouts logged yet</h5>
+                        <p class="text-muted mb-4">Start tracking your fitness journey by logging your first workout!</p>
+                        <a href="{{ url_for('log_workout') }}" class="btn btn-success">
+                            <i class="bi bi-lightning me-2"></i>Log Your First Workout
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

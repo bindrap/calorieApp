@@ -84,6 +84,10 @@ class UserSettings(db.Model):
     age = db.Column(db.Integer)  # Age in years
     gender = db.Column(db.String(10))  # 'male', 'female', 'other'
 
+    # Background/wallpaper settings
+    background_type = db.Column(db.String(20), default='default')  # 'default', 'preset', 'custom'
+    background_filename = db.Column(db.String(255))  # filename for custom or preset backgrounds
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -175,6 +179,7 @@ class WorkoutEntry(db.Model):
     activity_type = db.Column(db.String(100), nullable=False)  # "Jiu Jitsu", "Running", etc.
     intensity = db.Column(db.String(20), nullable=False)  # "light", "moderate", "high"
     duration_minutes = db.Column(db.Integer, nullable=False)  # Workout duration in minutes
+    exertion_rating = db.Column(db.Integer)  # Perceived exertion scale 1-10
     calories_burned = db.Column(db.Numeric(8,2), nullable=False)  # Calculated calories burned
     logged_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -268,6 +273,55 @@ def calculate_quick_stats(user_id):
     return {
         'this_week': week_entries,
         'total_logged': total_entries
+    }
+
+def calculate_weekly_workout_stats(user_id):
+    """Calculate workout stats for the last 7 days"""
+    from datetime import date, timedelta
+    from sqlalchemy import func
+
+    # Last 7 days
+    week_start = date.today() - timedelta(days=7)
+
+    # Get last week's workouts
+    weekly_workouts = WorkoutEntry.query.filter_by(user_id=user_id)\
+        .filter(WorkoutEntry.logged_at >= week_start)\
+        .all()
+
+    if not weekly_workouts:
+        return {
+            'total_workouts': 0,
+            'total_calories_burned': 0,
+            'total_minutes': 0,
+            'avg_calories_per_workout': 0,
+            'most_common_activity': 'None',
+            'most_common_intensity': 'None'
+        }
+
+    # Calculate totals
+    total_workouts = len(weekly_workouts)
+    total_calories_burned = sum(float(w.calories_burned) for w in weekly_workouts)
+    total_minutes = sum(w.duration_minutes for w in weekly_workouts)
+    avg_calories_per_workout = total_calories_burned / total_workouts if total_workouts > 0 else 0
+
+    # Find most common activity and intensity
+    activity_counts = {}
+    intensity_counts = {}
+
+    for workout in weekly_workouts:
+        activity_counts[workout.activity_type] = activity_counts.get(workout.activity_type, 0) + 1
+        intensity_counts[workout.intensity] = intensity_counts.get(workout.intensity, 0) + 1
+
+    most_common_activity = max(activity_counts.keys(), key=activity_counts.get) if activity_counts else 'None'
+    most_common_intensity = max(intensity_counts.keys(), key=intensity_counts.get) if intensity_counts else 'None'
+
+    return {
+        'total_workouts': total_workouts,
+        'total_calories_burned': round(total_calories_burned, 0),
+        'total_minutes': total_minutes,
+        'avg_calories_per_workout': round(avg_calories_per_workout, 0),
+        'most_common_activity': most_common_activity,
+        'most_common_intensity': most_common_intensity.title()
     }
 
 def calculate_history_stats(user_id):
@@ -508,13 +562,13 @@ def get_learning_context(user_id, food_name, food_category=None):
         'food_category': food_category
     }
 
-def calculate_calories_burned(activity_type, intensity, duration_minutes, weight_kg):
+def calculate_calories_burned(activity_type, intensity, duration_minutes, weight_kg, exertion_rating=None):
     """
-    Calculate calories burned using MET (Metabolic Equivalent) formula
-    Formula: Calories Burned = MET × weight_kg × duration_hours
+    Calculate calories burned using MET (Metabolic Equivalent) formula with exertion adjustment
+    Formula: Calories Burned = MET × weight_kg × duration_hours × exertion_multiplier
     """
 
-    # MET values based on intensity levels
+    # Base MET values based on intensity levels
     met_values = {
         'light': {
             'default': 2.5,
@@ -542,7 +596,7 @@ def calculate_calories_burned(activity_type, intensity, duration_minutes, weight
         }
     }
 
-    # Get MET value for the activity
+    # Get base MET value for the activity
     activity_lower = activity_type.lower()
     intensity_mets = met_values.get(intensity, met_values['moderate'])
 
@@ -552,6 +606,45 @@ def calculate_calories_burned(activity_type, intensity, duration_minutes, weight
         if activity in activity_lower:
             met_value = met
             break
+
+    # Apply exertion rating adjustment if provided
+    if exertion_rating is not None and 1 <= exertion_rating <= 10:
+        # Exertion multipliers based on perceived exertion scale
+        exertion_multipliers = {
+            1: 0.5,   # Very very light
+            2: 0.7,   # Very light (can sing)
+            3: 0.85,  # Light
+            4: 0.95,  # Light-moderate
+            5: 1.0,   # Moderate (can talk, not sing)
+            6: 1.1,   # Moderate-hard
+            7: 1.2,   # Hard (difficult to talk)
+            8: 1.3,   # Very hard
+            9: 1.4,   # Very very hard
+            10: 1.5   # Maximum exertion
+        }
+
+        # Validate exertion rating matches intensity expectation
+        expected_ranges = {
+            'light': (2, 4),
+            'moderate': (5, 6),
+            'high': (7, 9)
+        }
+
+        # If exertion is significantly different from intensity, use exertion
+        expected_min, expected_max = expected_ranges.get(intensity, (5, 6))
+        if not (expected_min <= exertion_rating <= expected_max):
+            # User's perceived exertion differs from selected intensity
+            # Adjust MET value based on actual exertion
+            if exertion_rating <= 4:
+                # Felt light regardless of selected intensity
+                met_value = met_values['light']['default']
+            elif exertion_rating >= 7:
+                # Felt hard regardless of selected intensity
+                met_value = met_values['high']['default']
+
+        # Apply exertion multiplier
+        exertion_multiplier = exertion_multipliers.get(exertion_rating, 1.0)
+        met_value *= exertion_multiplier
 
     # Convert duration to hours
     duration_hours = duration_minutes / 60.0
@@ -639,16 +732,27 @@ def index():
                                       .order_by(FoodEntry.consumed_at.desc())\
                                       .limit(10).all()
 
+        recent_workouts = WorkoutEntry.query.filter_by(user_id=current_user.id)\
+                                          .order_by(WorkoutEntry.logged_at.desc())\
+                                          .limit(3).all()
+
         # Calculate today's stats
         today_stats = calculate_today_stats(current_user.id)
         quick_stats = calculate_quick_stats(current_user.id)
+        weekly_workout_stats = calculate_weekly_workout_stats(current_user.id)
         user_goals = get_user_goals(current_user.id)
+
+        # Get available preset backgrounds
+        preset_backgrounds = ['mountains.jpg', 'road_condensation.jpg', 'tecumseh.jpg']
 
         response = make_response(render_template('dashboard.html',
                                recent_entries=recent_entries,
+                               recent_workouts=recent_workouts,
                                today_stats=today_stats,
                                quick_stats=quick_stats,
-                               user_goals=user_goals))
+                               weekly_workout_stats=weekly_workout_stats,
+                               user_goals=user_goals,
+                               preset_backgrounds=preset_backgrounds))
 
         # Disable caching to ensure fresh data
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -944,6 +1048,7 @@ def log_workout():
         activity_type = request.form.get('activity_type')
         intensity = request.form.get('intensity')
         duration_minutes = int(request.form.get('duration_minutes'))
+        exertion_rating = request.form.get('exertion_rating', type=int)
 
         # Get user weight for calculation
         user_settings = UserSettings.query.filter_by(user_id=current_user.id).first()
@@ -951,9 +1056,9 @@ def log_workout():
             flash('Please set your weight in profile to track workouts', 'error')
             return redirect(url_for('profile'))
 
-        # Calculate calories burned
+        # Calculate calories burned with exertion adjustment
         calories_burned = calculate_calories_burned(
-            activity_type, intensity, duration_minutes, float(user_settings.weight_kg)
+            activity_type, intensity, duration_minutes, float(user_settings.weight_kg), exertion_rating
         )
 
         # Create workout entry
@@ -962,6 +1067,7 @@ def log_workout():
             activity_type=activity_type,
             intensity=intensity,
             duration_minutes=duration_minutes,
+            exertion_rating=exertion_rating,
             calories_burned=calories_burned
         )
 
@@ -972,6 +1078,48 @@ def log_workout():
         return redirect(url_for('index'))
 
     return render_template('log_workout.html')
+
+@app.route('/edit_workout/<int:workout_id>', methods=['GET', 'POST'])
+@login_required
+def edit_workout(workout_id):
+    """Edit a workout entry"""
+    workout = WorkoutEntry.query.get_or_404(workout_id)
+
+    # Ensure user owns this workout
+    if workout.user_id != current_user.id:
+        flash('Unauthorized')
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        activity_type = request.form.get('activity_type')
+        intensity = request.form.get('intensity')
+        duration_minutes = int(request.form.get('duration_minutes'))
+        exertion_rating = request.form.get('exertion_rating', type=int)
+
+        # Get user weight for calculation
+        user_settings = UserSettings.query.filter_by(user_id=current_user.id).first()
+        if not user_settings or not user_settings.weight_kg:
+            flash('Please set your weight in profile to track workouts', 'error')
+            return redirect(url_for('profile'))
+
+        # Calculate calories burned with exertion adjustment
+        calories_burned = calculate_calories_burned(
+            activity_type, intensity, duration_minutes, float(user_settings.weight_kg), exertion_rating
+        )
+
+        # Update workout entry
+        workout.activity_type = activity_type
+        workout.intensity = intensity
+        workout.duration_minutes = duration_minutes
+        workout.exertion_rating = exertion_rating
+        workout.calories_burned = calories_burned
+
+        db.session.commit()
+
+        flash(f'Workout updated! You burned {calories_burned} calories.', 'success')
+        return redirect(url_for('index'))
+
+    return render_template('edit_workout.html', workout=workout)
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -984,9 +1132,17 @@ def profile():
             user_settings = UserSettings(user_id=current_user.id)
             db.session.add(user_settings)
 
-        # Update profile fields
-        user_settings.weight_kg = request.form.get('weight_kg')
-        user_settings.height_cm = request.form.get('height_cm')
+        # Update profile fields - convert from imperial to metric
+        weight_lbs = request.form.get('weight_lbs', type=float)
+        if weight_lbs:
+            user_settings.weight_kg = weight_lbs / 2.20462  # Convert lbs to kg
+
+        height_feet = request.form.get('height_feet', type=int)
+        height_inches = request.form.get('height_inches', type=int)
+        if height_feet is not None and height_inches is not None:
+            total_inches = (height_feet * 12) + height_inches
+            user_settings.height_cm = total_inches * 2.54  # Convert inches to cm
+
         user_settings.age = request.form.get('age', type=int)
         user_settings.gender = request.form.get('gender')
 
@@ -996,11 +1152,85 @@ def profile():
         user_settings.fat_goal = request.form.get('fat_goal', type=int)
         user_settings.carb_goal = request.form.get('carb_goal', type=int)
 
+        # Handle background settings
+        background_type = request.form.get('background_type')
+        if background_type == 'preset':
+            preset_background = request.form.get('preset_background')
+            if preset_background:
+                user_settings.background_type = 'preset'
+                user_settings.background_filename = preset_background
+        elif background_type == 'custom':
+            if 'background_upload' in request.files:
+                background_file = request.files['background_upload']
+                if background_file and background_file.filename and allowed_file(background_file.filename):
+                    # Generate unique filename
+                    import uuid
+                    filename = str(uuid.uuid4()) + '.' + background_file.filename.rsplit('.', 1)[1].lower()
+
+                    # Save file
+                    background_path = os.path.join('static', 'user_backgrounds', filename)
+                    os.makedirs(os.path.dirname(background_path), exist_ok=True)
+                    background_file.save(background_path)
+
+                    # Remove old custom background if exists
+                    if user_settings.background_type == 'custom' and user_settings.background_filename:
+                        old_path = os.path.join('static', 'user_backgrounds', user_settings.background_filename)
+                        if os.path.exists(old_path):
+                            os.remove(old_path)
+
+                    user_settings.background_type = 'custom'
+                    user_settings.background_filename = filename
+        elif background_type == 'default':
+            user_settings.background_type = 'default'
+            user_settings.background_filename = None
+
         db.session.commit()
         flash('Profile updated successfully!', 'success')
         return redirect(url_for('profile'))
 
-    return render_template('profile.html', settings=user_settings)
+    # Get available preset backgrounds
+    preset_backgrounds = ['mountains.jpg', 'road_condensation.jpg', 'tecumseh.jpg']
+
+    return render_template('profile.html', settings=user_settings, preset_backgrounds=preset_backgrounds)
+
+def get_user_background():
+    """Get the current user's background setting"""
+    if current_user.is_authenticated:
+        user_settings = UserSettings.query.filter_by(user_id=current_user.id).first()
+        if user_settings and user_settings.background_type:
+            if user_settings.background_type == 'preset':
+                return f"url({url_for('static', filename='backgrounds/' + user_settings.background_filename)})"
+            elif user_settings.background_type == 'custom':
+                return f"url({url_for('static', filename='user_backgrounds/' + user_settings.background_filename)})"
+    # Default gradient background
+    return "linear-gradient(135deg, #1a4d4d 0%, #0d3333 100%)"
+
+@app.context_processor
+def inject_user_background():
+    """Make user background available in all templates"""
+    return dict(user_background=get_user_background())
+
+@app.route('/workout_history')
+@login_required
+def workout_history():
+    """View workout history"""
+    page = request.args.get('page', 1, type=int)
+    workouts = WorkoutEntry.query.filter_by(user_id=current_user.id)\
+                                .order_by(WorkoutEntry.logged_at.desc())\
+                                .paginate(page=page, per_page=20, error_out=False)
+
+    # Calculate workout stats
+    total_workouts = WorkoutEntry.query.filter_by(user_id=current_user.id).count()
+    total_calories_burned = db.session.query(db.func.sum(WorkoutEntry.calories_burned))\
+                                    .filter_by(user_id=current_user.id).scalar() or 0
+
+    workout_stats = {
+        'total_workouts': total_workouts,
+        'total_calories_burned': round(float(total_calories_burned), 1),
+        'avg_calories_per_workout': round(float(total_calories_burned) / max(total_workouts, 1), 1)
+    }
+
+    return render_template('workout_history.html', workouts=workouts, workout_stats=workout_stats)
 
 @app.route('/api/search_food')
 @login_required
@@ -1102,11 +1332,87 @@ def api_analysis_log(food_entry_id):
         'created_at': analysis_log.created_at.isoformat()
     })
 
+@app.route('/api/food/<int:food_id>', methods=['DELETE'])
+@login_required
+def delete_food_entry(food_id):
+    """API endpoint to delete a food entry"""
+    food_entry = FoodEntry.query.get_or_404(food_id)
+
+    # Ensure user owns this entry
+    if food_entry.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    try:
+        # Delete associated analysis log if it exists
+        analysis_log = AnalysisLog.query.filter_by(food_entry_id=food_id).first()
+        if analysis_log:
+            db.session.delete(analysis_log)
+
+        # Delete the food entry
+        db.session.delete(food_entry)
+        db.session.commit()
+
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete food entry'}), 500
+
+@app.route('/api/workout/<int:workout_id>', methods=['DELETE'])
+@login_required
+def delete_workout_entry(workout_id):
+    """API endpoint to delete a workout entry"""
+    workout = WorkoutEntry.query.get_or_404(workout_id)
+
+    # Ensure user owns this workout
+    if workout.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    try:
+        db.session.delete(workout)
+        db.session.commit()
+
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete workout'}), 500
+
+@app.route('/api/background', methods=['POST'])
+@login_required
+def update_background():
+    """API endpoint to quickly update user background"""
+    data = request.get_json()
+    background_type = data.get('background_type')
+    background_filename = data.get('background_filename')
+
+    # Get or create user settings
+    user_settings = UserSettings.query.filter_by(user_id=current_user.id).first()
+    if not user_settings:
+        user_settings = UserSettings(user_id=current_user.id)
+        db.session.add(user_settings)
+
+    # Update background settings
+    user_settings.background_type = background_type
+    user_settings.background_filename = background_filename
+
+    db.session.commit()
+
+    # Return new background CSS
+    return jsonify({
+        'success': True,
+        'background': get_user_background()
+    })
+
 @app.route('/sw.js')
 def service_worker():
     """Serve the service worker file"""
     from flask import send_from_directory
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+
+@app.route('/manifest.json')
+def manifest():
+    """Serve the PWA manifest file"""
+    from flask import send_from_directory
+    return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
 
 def allowed_file(filename):
     """Check if uploaded file is allowed"""
