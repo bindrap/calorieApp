@@ -86,6 +86,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('log_workout') }}">
+                                <i class="bi bi-lightning me-1"></i>Log Workout
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('history') }}">
                                 <i class="bi bi-clock-history me-1"></i>History
                             </a>
@@ -100,7 +105,7 @@
                                 <i class="bi bi-person-circle me-1"></i>{{ current_user.username }}
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="bi bi-gear me-2"></i>Settings</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="bi bi-person me-2"></i>Profile</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                             </ul>

@@ -131,6 +131,9 @@
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-check-lg me-2"></i>Update Entry
                                 </button>
+                                <a href="javascript:void(0)" onclick="backToDashboard()" class="btn btn-success">
+                                    <i class="bi bi-house me-2"></i>Back to Dashboard
+                                </a>
                                 <a href="{{ url_for('index') }}" class="btn btn-secondary">
                                     <i class="bi bi-arrow-left me-2"></i>Cancel
                                 </a>
@@ -302,6 +305,12 @@ document.addEventListener('DOMContentLoaded', function() {
         weightInput.dataset.lastWeight = weightInput.value;
     }
 });
+
+function backToDashboard() {
+    // Force refresh by adding timestamp parameter
+    const timestamp = Date.now();
+    window.location.href = `/?_refresh=${timestamp}`;
+}
 
 function showAnalysisDebug() {
     const entryId = {{ entry.id }};

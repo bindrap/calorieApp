@@ -7,8 +7,8 @@ services:
     ports:
       - "5151:5151"
     volumes:
-      # Persistent storage for all data including database, uploads, and archives
-      - ./data:/app/data
+      # Persistent storage for database and uploads
+      - .:/app
     environment:
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
