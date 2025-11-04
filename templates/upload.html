@@ -39,6 +39,21 @@
                         </div>
                     </div>
 
+                    <!-- Food Description Field (NEW) -->
+                    <div class="mb-4">
+                        <label for="description" class="form-label">
+                            <i class="bi bi-chat-text me-1"></i>Food Description (Optional - Improves Accuracy)
+                        </label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Describe your food for better AI accuracy. Examples:&#10;• 'McDonald's Big Mac with large fries'&#10;• 'Two grilled chicken breasts, about 200g each'&#10;• 'Homemade spaghetti with meat sauce'&#10;• 'Starbucks Caramel Frappuccino, grande size'"></textarea>
+                        <div class="form-text">
+                            💡 <strong>Pro Tip:</strong> Include brand names, portion sizes, cooking methods, or weight for highly accurate results
+                        </div>
+                        <div id="charCount" class="form-text text-muted">
+                            <small>0 / 500 characters</small>
+                        </div>
+                    </div>
+
                     <!-- Manual Entry Option -->
                     <div class="mb-4">
                         <div class="form-check">
@@ -146,6 +161,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const submitText = document.getElementById('submitText');
     const manualEntry = document.getElementById('manualEntry');
     const manualFields = document.getElementById('manualFields');
+    const descriptionField = document.getElementById('description');
+    const charCount = document.getElementById('charCount');
+
+    // Character counter for description field
+    if (descriptionField && charCount) {
+        descriptionField.addEventListener('input', function() {
+            const length = this.value.length;
+            const maxLength = 500;
+            charCount.innerHTML = `<small>${length} / ${maxLength} characters</small>`;
+
+            if (length > maxLength) {
+                this.value = this.value.substring(0, maxLength);
+                charCount.innerHTML = `<small class="text-danger">${maxLength} / ${maxLength} characters (max reached)</small>`;
+            }
+        });
+    }
 
     // File upload drag and drop
     uploadArea.addEventListener('click', () => fileInput.click());

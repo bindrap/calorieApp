@@ -128,6 +128,9 @@ class FoodEntry(db.Model):
     user_corrected = db.Column(db.Boolean, default=False)
     original_ai_food_name = db.Column(db.String(200))
 
+    # User-provided description for improved AI accuracy
+    user_description = db.Column(db.Text)
+
     # Image information
     image_filename = db.Column(db.String(255))
     image_path = db.Column(db.String(500))
@@ -147,6 +150,7 @@ class AnalysisLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     food_entry_id = db.Column(db.Integer, db.ForeignKey('food_entries.id'))
     image_filename = db.Column(db.String(255))
+    user_description = db.Column(db.Text)  # User-provided description
 
     # AI Analysis Steps
     raw_ai_response = db.Column(db.Text)  # Raw LLM response
@@ -382,7 +386,7 @@ def get_user_goals(user_id):
         'carb_goal': settings.carb_goal
     }
 
-def log_analysis_process(user_id, food_entry_id, image_filename, analysis_data):
+def log_analysis_process(user_id, food_entry_id, image_filename, analysis_data, user_description=None):
     """Log detailed AI analysis process for troubleshooting"""
     import time
 
@@ -390,6 +394,7 @@ def log_analysis_process(user_id, food_entry_id, image_filename, analysis_data):
         user_id=user_id,
         food_entry_id=food_entry_id,
         image_filename=image_filename,
+        user_description=user_description,
 
         # AI Analysis Steps
         raw_ai_response=analysis_data.get('raw_ai_response', ''),
@@ -846,13 +851,16 @@ def upload_food():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
+        # Get user description if provided
+        user_description = request.form.get('description', '').strip()
+
         # Process the image with AI
         try:
             import time
             start_time = time.time()
 
-            # Recognize food in image
-            recognition_result = food_recognizer.analyze_image(filepath)
+            # Recognize food in image (with optional user description)
+            recognition_result = food_recognizer.analyze_image(filepath, user_description=user_description)
 
             # Apply user learning adjustments to AI analysis
             analysis_result = {
@@ -864,8 +872,8 @@ def upload_food():
                 'fat': 0
             }
 
-            # Calculate calories
-            calorie_result = calorie_calculator.calculate_calories(recognition_result)
+            # Calculate calories (with optional user description for context)
+            calorie_result = calorie_calculator.calculate_calories(recognition_result, user_description=user_description)
             analysis_result.update({
                 'calories': calorie_result['total_calories'],
                 'protein': calorie_result.get('protein', 0),
@@ -894,6 +902,7 @@ def upload_food():
                 ai_confidence_score=recognition_result.get('confidence'),
                 ai_identified_foods=json.dumps(recognition_result.get('all_foods', [])),
                 original_ai_food_name=recognition_result['primary_food'],
+                user_description=user_description if user_description else None,
                 image_filename=filename,
                 image_path=filepath,
                 consumed_at=toronto_now()
@@ -946,7 +955,7 @@ def upload_food():
                 'errors_encountered': ''
             }
 
-            log_analysis_process(current_user.id, food_entry.id, filename, analysis_data)
+            log_analysis_process(current_user.id, food_entry.id, filename, analysis_data, user_description=user_description)
 
             flash('Food logged successfully!')
             return redirect(url_for('edit_entry', entry_id=food_entry.id))
@@ -981,11 +990,20 @@ def edit_entry(entry_id):
 
         # Update entry with user corrections
         entry.food_name = request.form['food_name']
+        entry.user_description = request.form.get('description', '').strip() or None
         entry.actual_weight_grams = float(request.form.get('weight', 0))
         entry.calories = float(request.form['calories'])
         entry.protein = float(request.form.get('protein', 0))
         entry.carbs = float(request.form.get('carbs', 0))
         entry.fat = float(request.form.get('fat', 0))
+
+        # Update consumed_at if provided
+        if request.form.get('consumed_at'):
+            try:
+                entry.consumed_at = datetime.strptime(request.form['consumed_at'], '%Y-%m-%dT%H:%M')
+            except ValueError:
+                pass  # Keep original if parsing fails
+
         entry.user_corrected = True
         entry.updated_at = datetime.utcnow()
 
@@ -1321,6 +1339,7 @@ def api_analysis_log(food_entry_id):
         'protein': float(analysis_log.final_protein or 0),
         'carbs': float(analysis_log.final_carbs or 0),
         'fat': float(analysis_log.final_fat or 0),
+        'user_description': analysis_log.user_description,
         'data_source': analysis_log.data_source_used,
         'ai_confidence': float(analysis_log.ai_confidence or 0),
         'processing_time_ms': analysis_log.processing_time_ms,
