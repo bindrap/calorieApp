@@ -1,110 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log Workout - Koombi</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Koombi</a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
-                <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
-                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+{% extends "base.html" %}
+
+{% block title %}Log Workout - Koombi{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="bi bi-lightning-charge-fill me-2"></i>Log Workout
+                </h3>
             </div>
-        </div>
-    </nav>
-
-    <div class="container mt-4">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3>Log Workout</h3>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Activity Type -->
+                    <div class="mb-4">
+                        <label for="activity_type" class="form-label fw-bold">
+                            <i class="bi bi-activity me-2"></i>Activity Type
+                        </label>
+                        <select class="form-select" id="activity_type" name="activity_type" required>
+                            <option value="">Select Activity</option>
+                            <optgroup label="Cardio">
+                                <option value="Running">🏃 Running</option>
+                                <option value="Cycling">🚴 Cycling</option>
+                                <option value="Swimming">🏊 Swimming</option>
+                                <option value="Walking">🚶 Walking</option>
+                            </optgroup>
+                            <optgroup label="Combat Sports">
+                                <option value="Jiu Jitsu">🥋 Jiu Jitsu</option>
+                                <option value="Boxing">🥊 Boxing</option>
+                            </optgroup>
+                            <optgroup label="Strength & Fitness">
+                                <option value="Weight Training">🏋️ Weight Training</option>
+                                <option value="HIIT">⚡ HIIT</option>
+                                <option value="Yoga">🧘 Yoga</option>
+                            </optgroup>
+                            <optgroup label="Team Sports">
+                                <option value="Basketball">🏀 Basketball</option>
+                                <option value="Soccer">⚽ Soccer</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="Dancing">💃 Dancing</option>
+                                <option value="Other">📝 Other</option>
+                            </optgroup>
+                        </select>
                     </div>
-                    <div class="card-body">
-                        <form method="POST">
-                            <div class="mb-3">
-                                <label for="activity_type" class="form-label">Activity Type</label>
-                                <select class="form-select" id="activity_type" name="activity_type" required>
-                                    <option value="">Select Activity</option>
-                                    <option value="Running">Running</option>
-                                    <option value="Jiu Jitsu">Jiu Jitsu</option>
-                                    <option value="Weight Training">Weight Training</option>
-                                    <option value="Cycling">Cycling</option>
-                                    <option value="Swimming">Swimming</option>
-                                    <option value="Basketball">Basketball</option>
-                                    <option value="Soccer">Soccer</option>
-                                    <option value="Boxing">Boxing</option>
-                                    <option value="HIIT">HIIT</option>
-                                    <option value="Yoga">Yoga</option>
-                                    <option value="Walking">Walking</option>
-                                    <option value="Dancing">Dancing</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
 
-                            <div class="mb-3">
-                                <label for="intensity" class="form-label">Intensity Level</label>
-                                <select class="form-select" id="intensity" name="intensity" required>
-                                    <option value="">Select Intensity</option>
-                                    <option value="light">Light (Yoga, slow walking)</option>
-                                    <option value="moderate">Moderate (Weight training, brisk walking)</option>
-                                    <option value="high">High (Running, HIIT, martial arts)</option>
-                                </select>
-                            </div>
+                    <!-- Intensity Level -->
+                    <div class="mb-4">
+                        <label for="intensity" class="form-label fw-bold">
+                            <i class="bi bi-speedometer2 me-2"></i>Intensity Level
+                        </label>
+                        <select class="form-select" id="intensity" name="intensity" required>
+                            <option value="">Select Intensity</option>
+                            <option value="light">🟢 Light (Yoga, slow walking)</option>
+                            <option value="moderate">🟡 Moderate (Weight training, brisk walking)</option>
+                            <option value="high">🔴 High (Running, HIIT, martial arts)</option>
+                        </select>
 
-                            <div class="mb-3">
-                                <label for="duration_minutes" class="form-label">Duration (minutes)</label>
-                                <input type="number" class="form-control" id="duration_minutes" name="duration_minutes"
-                                       min="1" max="300" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="exertion_rating" class="form-label">Perceived Exertion Scale (1-10)</label>
-                                <select class="form-select" id="exertion_rating" name="exertion_rating" required>
-                                    <option value="">Select your exertion level</option>
-                                    <option value="2">2 - Very Light (Can sing while exercising)</option>
-                                    <option value="3">3 - Light (Can sing while exercising)</option>
-                                    <option value="4">4 - Light (Can sing while exercising)</option>
-                                    <option value="5">5 - Moderate (Can talk but not sing)</option>
-                                    <option value="6">6 - Moderate (Can talk but not sing)</option>
-                                    <option value="7">7 - High (Difficult to talk)</option>
-                                    <option value="8">8 - High (Difficult to talk)</option>
-                                    <option value="9">9 - Very High (Difficult to talk)</option>
-                                </select>
-                                <div class="form-text">
-                                    <strong>Physical Signs:</strong><br>
-                                    <small class="text-muted">
-                                        • Light (2-4): Minimal sweat, easy recovery<br>
-                                        • Moderate (5-6): Light sweat, recovery in 2-5 minutes<br>
-                                        • High (7-9): Heavy sweat, recovery 5+ minutes
-                                    </small>
-                                </div>
-                            </div>
-
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary">Log Workout</button>
-                            </div>
-                        </form>
-
-                        <div class="mt-4">
-                            <h5>MET Reference</h5>
+                        <!-- Intensity Info Card -->
+                        <div class="mt-3 p-3 rounded" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.05), rgba(236, 72, 153, 0.05));">
                             <small class="text-muted">
-                                <strong>Light:</strong> 2-3 MET (Yoga, walking slowly)<br>
-                                <strong>Moderate:</strong> 4-6 MET (Weight training, brisk walking, cycling)<br>
-                                <strong>High:</strong> 7-12+ MET (Running, HIIT, martial arts)
+                                <strong class="text-dark">💡 MET Reference:</strong><br>
+                                <span class="badge bg-success me-2">Light</span> 2-3 MET (Yoga, walking slowly)<br>
+                                <span class="badge bg-warning text-dark me-2">Moderate</span> 4-6 MET (Weight training, brisk walking)<br>
+                                <span class="badge bg-danger me-2">High</span> 7-12+ MET (Running, HIIT, martial arts)
                             </small>
                         </div>
                     </div>
-                </div>
+
+                    <!-- Duration -->
+                    <div class="mb-4">
+                        <label for="duration_minutes" class="form-label fw-bold">
+                            <i class="bi bi-clock me-2"></i>Duration (minutes)
+                        </label>
+                        <input type="number" class="form-control" id="duration_minutes" name="duration_minutes"
+                               min="1" max="300" placeholder="e.g., 30" required>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            How long did you exercise?
+                        </div>
+                    </div>
+
+                    <!-- Exertion Rating -->
+                    <div class="mb-4">
+                        <label for="exertion_rating" class="form-label fw-bold">
+                            <i class="bi bi-heart-pulse me-2"></i>Perceived Exertion Scale (1-10)
+                        </label>
+                        <select class="form-select" id="exertion_rating" name="exertion_rating" required>
+                            <option value="">Select your exertion level</option>
+                            <optgroup label="Light Effort">
+                                <option value="2">😌 2 - Very Light (Can sing while exercising)</option>
+                                <option value="3">🙂 3 - Light (Can sing while exercising)</option>
+                                <option value="4">😊 4 - Light (Can talk easily)</option>
+                            </optgroup>
+                            <optgroup label="Moderate Effort">
+                                <option value="5">😅 5 - Moderate (Can talk but not sing)</option>
+                                <option value="6">💪 6 - Moderate (Can talk with effort)</option>
+                            </optgroup>
+                            <optgroup label="Hard Effort">
+                                <option value="7">😤 7 - High (Difficult to talk)</option>
+                                <option value="8">😰 8 - High (Very difficult to talk)</option>
+                                <option value="9">🥵 9 - Very High (Can barely speak)</option>
+                            </optgroup>
+                        </select>
+
+                        <!-- Exertion Info Card -->
+                        <div class="mt-3 p-3 rounded" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(99, 102, 241, 0.05));">
+                            <strong class="text-dark">
+                                <i class="bi bi-droplet-fill me-2"></i>Physical Signs:
+                            </strong><br>
+                            <small class="text-muted">
+                                <span class="badge bg-success me-2">Light (2-4)</span> Minimal sweat, easy recovery<br>
+                                <span class="badge bg-warning text-dark me-2">Moderate (5-6)</span> Light sweat, recovery in 2-5 minutes<br>
+                                <span class="badge bg-danger me-2">High (7-9)</span> Heavy sweat, recovery 5+ minutes
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-circle me-2"></i>Log Workout
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Tips Card -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-lightbulb-fill text-warning me-2"></i>Quick Tips
+                </h5>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Log workouts right after finishing for accurate tracking
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Be honest with your exertion level for better calorie estimates
+                    </li>
+                    <li class="mb-0">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Track workouts consistently to see your progress over time
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% block scripts %}
+<script>
+    // Add visual feedback when selecting intensity
+    document.getElementById('intensity').addEventListener('change', function() {
+        const card = this.closest('.mb-4');
+        card.style.transition = 'all 0.3s ease';
+        card.style.transform = 'scale(1.02)';
+        setTimeout(() => {
+            card.style.transform = 'scale(1)';
+        }, 300);
+    });
+
+    // Add visual feedback when selecting activity
+    document.getElementById('activity_type').addEventListener('change', function() {
+        const card = this.closest('.mb-4');
+        card.style.transition = 'all 0.3s ease';
+        card.style.transform = 'scale(1.02)';
+        setTimeout(() => {
+            card.style.transform = 'scale(1)';
+        }, 300);
+    });
+</script>
+{% endblock %}
