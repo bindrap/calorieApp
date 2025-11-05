@@ -9,7 +9,7 @@ import json
 import re
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
-import ollama
+from ollama import Client
 
 
 class AIChatCoach:
@@ -18,8 +18,15 @@ class AIChatCoach:
     """
 
     def __init__(self):
-        # Use Ollama Cloud - API key already set in environment
+        # Use Ollama Cloud API directly
+        api_key = os.environ.get('OLLAMA_API_KEY', '1728cbe73f944db7afa1a3c8f52d2f41.GzEVZ8ADdcDHwIxdbvKnqbXy')
         self.model = 'gpt-oss:120b-cloud'
+
+        # Create client pointing to Ollama Cloud
+        self.client = Client(
+            host='https://ollama.com',
+            headers={'Authorization': f'Bearer {api_key}'}
+        )
 
         # Conversation history (in production, load from database)
         self.conversation_history = []
@@ -464,11 +471,11 @@ Keep it conversational and encouraging.
             return {'error': str(e), 'needs_clarification': True}
 
     def _call_ai_simple(self, prompt: str) -> str:
-        """Simple AI call that returns text response using Ollama SDK"""
+        """Simple AI call that returns text response using Ollama Cloud"""
 
         try:
-            # Use Ollama Cloud - simple approach
-            response = ollama.chat(
+            # Use Ollama Cloud client
+            response = self.client.chat(
                 model=self.model,
                 messages=[
                     {

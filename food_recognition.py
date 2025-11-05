@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from PIL import Image
 import io
-import ollama
+from ollama import Client
 
 # Configuration
 OLLAMA_MODEL = "gpt-oss:120b-cloud"
@@ -22,6 +22,13 @@ class FoodRecognizer:
 
     def __init__(self, model: str = OLLAMA_MODEL, api_key: Optional[str] = None):
         self.model = model
+        api_key = api_key or os.environ.get('OLLAMA_API_KEY', '1728cbe73f944db7afa1a3c8f52d2f41.GzEVZ8ADdcDHwIxdbvKnqbXy')
+
+        # Create client pointing to Ollama Cloud
+        self.client = Client(
+            host='https://ollama.com',
+            headers={'Authorization': f'Bearer {api_key}'}
+        )
 
     def analyze_image(self, image_path: str, user_description: Optional[str] = None) -> Dict:
         """
@@ -249,8 +256,8 @@ Respond ONLY with valid JSON in this exact format:
     "description": "reasoning for identification"
 }}"""
 
-            # Use Ollama Cloud - simple approach
-            response = ollama.chat(
+            # Use Ollama Cloud client
+            response = self.client.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}]
             )
@@ -348,8 +355,8 @@ Respond ONLY with valid JSON in this exact format:
     def test_connection(self) -> bool:
         """Test if the API connection is working"""
         try:
-            # Use Ollama Cloud - simple approach
-            response = ollama.chat(
+            # Use Ollama Cloud client
+            response = self.client.chat(
                 model=self.model,
                 messages=[{"role": "user", "content": "Hello"}]
             )
