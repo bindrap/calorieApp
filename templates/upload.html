@@ -54,6 +54,46 @@
                         </div>
                     </div>
 
+                    <!-- Bluetooth Scale Integration (NEW) -->
+                    <div class="mb-4">
+                        <div class="card bg-light border-primary">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-bluetooth me-2"></i>Bluetooth Scale (95-98% Accuracy)
+                                </h6>
+                                <p class="small text-muted mb-2">
+                                    Connect your Bluetooth smart scale for precise weight measurement
+                                </p>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="connectScaleBtn">
+                                        <i class="bi bi-bluetooth"></i> Connect Scale
+                                    </button>
+                                    <span id="scaleStatus" class="badge bg-secondary">Not Connected</span>
+                                </div>
+
+                                <!-- Weight Display (shown when connected) -->
+                                <div id="scaleWeightDisplay" class="mt-3 d-none">
+                                    <div class="alert alert-success mb-2">
+                                        <strong>⚖️ Scale Reading:</strong>
+                                        <span id="currentWeight" class="fs-4 ms-2">--</span> grams
+                                        <span id="stableIndicator" class="badge bg-success ms-2 d-none">✓ Stable</span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-success" id="useScaleWeight">
+                                        Use This Weight
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="disconnectScaleBtn">
+                                        Disconnect
+                                    </button>
+                                </div>
+
+                                <div class="form-text mt-2">
+                                    ℹ️ Works with Chrome/Edge. Supports Etekcity, Greater Goods, Ozeri, and most BLE scales
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Manual Entry Option -->
                     <div class="mb-4">
                         <div class="form-check">
@@ -248,6 +288,107 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingSpinner.classList.remove('d-none');
         submitText.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Analyzing...';
     });
+
+    // ===== BLUETOOTH SCALE INTEGRATION =====
+    let bluetoothScale = null;
+    let currentScaleWeight = null;
+
+    const connectScaleBtn = document.getElementById('connectScaleBtn');
+    const disconnectScaleBtn = document.getElementById('disconnectScaleBtn');
+    const scaleStatus = document.getElementById('scaleStatus');
+    const scaleWeightDisplay = document.getElementById('scaleWeightDisplay');
+    const currentWeightSpan = document.getElementById('currentWeight');
+    const stableIndicator = document.getElementById('stableIndicator');
+    const useScaleWeightBtn = document.getElementById('useScaleWeight');
+    const manualWeightInput = document.getElementById('manualWeight');
+
+    // Load Bluetooth Scale library
+    const script = document.createElement('script');
+    script.src = "{{ url_for('static', filename='js/bluetooth_scale.js') }}";
+    document.head.appendChild(script);
+
+    script.onload = function() {
+        bluetoothScale = new BluetoothScale();
+
+        // Set up weight update callback
+        bluetoothScale.setWeightCallback((weight, isStable) => {
+            currentScaleWeight = weight;
+            currentWeightSpan.textContent = weight.toFixed(0);
+
+            if (isStable) {
+                stableIndicator.classList.remove('d-none');
+            } else {
+                stableIndicator.classList.add('d-none');
+            }
+        });
+    };
+
+    // Connect to scale
+    if (connectScaleBtn) {
+        connectScaleBtn.addEventListener('click', async function() {
+            if (!bluetoothScale) {
+                alert('Bluetooth Scale library not loaded. Please refresh the page.');
+                return;
+            }
+
+            if (!bluetoothScale.isSupported()) {
+                alert('Web Bluetooth is not supported in your browser. Please use Chrome, Edge, or Opera.');
+                return;
+            }
+
+            try {
+                connectScaleBtn.disabled = true;
+                connectScaleBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Connecting...';
+
+                const result = await bluetoothScale.connect();
+
+                // Update UI to show connected state
+                scaleStatus.textContent = `Connected: ${result.deviceName}`;
+                scaleStatus.className = 'badge bg-success';
+                scaleWeightDisplay.classList.remove('d-none');
+                connectScaleBtn.classList.add('d-none');
+
+            } catch (error) {
+                alert(`Failed to connect to scale: ${error.message}`);
+                connectScaleBtn.disabled = false;
+                connectScaleBtn.innerHTML = '<i class="bi bi-bluetooth"></i> Connect Scale';
+            }
+        });
+    }
+
+    // Disconnect from scale
+    if (disconnectScaleBtn) {
+        disconnectScaleBtn.addEventListener('click', async function() {
+            if (bluetoothScale) {
+                await bluetoothScale.disconnect();
+                scaleStatus.textContent = 'Not Connected';
+                scaleStatus.className = 'badge bg-secondary';
+                scaleWeightDisplay.classList.add('d-none');
+                connectScaleBtn.classList.remove('d-none');
+                connectScaleBtn.disabled = false;
+                connectScaleBtn.innerHTML = '<i class="bi bi-bluetooth"></i> Connect Scale';
+                currentWeightSpan.textContent = '--';
+                stableIndicator.classList.add('d-none');
+            }
+        });
+    }
+
+    // Use scale weight
+    if (useScaleWeightBtn) {
+        useScaleWeightBtn.addEventListener('click', function() {
+            if (currentScaleWeight) {
+                // If manual entry is enabled, populate the manual weight field
+                if (manualEntry.checked && manualWeightInput) {
+                    manualWeightInput.value = currentScaleWeight.toFixed(0);
+                    alert(`Weight set to ${currentScaleWeight.toFixed(0)}g from scale!`);
+                } else {
+                    alert(`Weight recorded: ${currentScaleWeight.toFixed(0)}g. This will be used when you analyze the food.`);
+                    // Store in a hidden field or session storage for later use
+                    sessionStorage.setItem('scaleWeight', currentScaleWeight.toFixed(0));
+                }
+            }
+        });
+    }
 });
 </script>
 

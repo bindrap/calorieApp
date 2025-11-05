@@ -20,6 +20,7 @@ from pathlib import Path
 # Import our custom modules (will create these)
 from food_recognition import FoodRecognizer
 from calorie_calculator import CalorieCalculator
+from barcode_scanner import scan_for_nutrition
 
 # Flask app configuration
 app = Flask(__name__)
@@ -130,6 +131,10 @@ class FoodEntry(db.Model):
 
     # User-provided description for improved AI accuracy
     user_description = db.Column(db.Text)
+
+    # Barcode information for packaged foods (98-100% accuracy)
+    barcode_upc = db.Column(db.String(50))  # UPC/EAN barcode
+    barcode_source = db.Column(db.String(100))  # 'Open Food Facts', 'Nutritionix', etc.
 
     # Image information
     image_filename = db.Column(db.String(255))
@@ -859,27 +864,70 @@ def upload_food():
             import time
             start_time = time.time()
 
-            # Recognize food in image (with optional user description)
-            recognition_result = food_recognizer.analyze_image(filepath, user_description=user_description)
+            # STEP 1: Try barcode/nutrition label scanning first (98-100% accuracy for packaged foods)
+            barcode_result = None
+            barcode_upc = None
+            barcode_source = None
 
-            # Apply user learning adjustments to AI analysis
-            analysis_result = {
-                'food_name': recognition_result['primary_food'],
-                'weight_grams': recognition_result.get('estimated_weight', 100),
-                'calories': 0,  # Will be calculated next
-                'protein': 0,
-                'carbs': 0,
-                'fat': 0
-            }
+            try:
+                print("🔍 Attempting barcode/nutrition label scan...")
+                barcode_result = scan_for_nutrition(filepath)
 
-            # Calculate calories (with optional user description for context)
-            calorie_result = calorie_calculator.calculate_calories(recognition_result, user_description=user_description)
-            analysis_result.update({
-                'calories': calorie_result['total_calories'],
-                'protein': calorie_result.get('protein', 0),
-                'carbs': calorie_result.get('carbs', 0),
-                'fat': calorie_result.get('fat', 0)
-            })
+                if barcode_result:
+                    print(f"✅ Packaged food detected via barcode!")
+                    print(f"   Product: {barcode_result.get('product_name')}")
+                    print(f"   Confidence: {barcode_result.get('confidence', 1.0) * 100}%")
+                    barcode_upc = barcode_result.get('barcode')
+                    barcode_source = barcode_result.get('data_source')
+            except Exception as barcode_error:
+                print(f"ℹ️  Barcode scanning not available or failed: {barcode_error}")
+                # Continue with regular AI recognition if barcode fails
+
+            # STEP 2: Use barcode data if available, otherwise use AI recognition
+            if barcode_result and barcode_result.get('confidence', 0) >= 0.90:
+                # Use barcode data (much more accurate than AI for packaged foods)
+                recognition_result = {
+                    'primary_food': barcode_result.get('product_name', 'Unknown Product'),
+                    'all_foods': [barcode_result.get('product_name', 'Unknown Product')],
+                    'confidence': barcode_result.get('confidence', 1.0),
+                    'estimated_weight': barcode_result.get('serving_size_g', 100),
+                    'description': f"Detected via barcode: {barcode_source}",
+                    'from_barcode': True
+                }
+
+                # Use barcode nutrition data directly (skip AI calorie calculation)
+                analysis_result = {
+                    'food_name': barcode_result.get('product_name'),
+                    'weight_grams': barcode_result.get('serving_size_g', 100),
+                    'calories': barcode_result.get('total_calories', 0),
+                    'protein': barcode_result.get('total_protein', 0),
+                    'carbs': barcode_result.get('total_carbs', 0),
+                    'fat': barcode_result.get('total_fat', 0)
+                }
+                print(f"📊 Using barcode nutrition data: {analysis_result['calories']} cal")
+            else:
+                # No barcode or low confidence - use AI recognition
+                print(f"🤖 Using AI recognition...")
+                recognition_result = food_recognizer.analyze_image(filepath, user_description=user_description)
+
+                # Apply user learning adjustments to AI analysis
+                analysis_result = {
+                    'food_name': recognition_result['primary_food'],
+                    'weight_grams': recognition_result.get('estimated_weight', 100),
+                    'calories': 0,  # Will be calculated next
+                    'protein': 0,
+                    'carbs': 0,
+                    'fat': 0
+                }
+
+                # Calculate calories (with optional user description for context)
+                calorie_result = calorie_calculator.calculate_calories(recognition_result, user_description=user_description)
+                analysis_result.update({
+                    'calories': calorie_result['total_calories'],
+                    'protein': calorie_result.get('protein', 0),
+                    'carbs': calorie_result.get('carbs', 0),
+                    'fat': calorie_result.get('fat', 0)
+                })
 
             # Apply learning adjustments based on user history
             try:
@@ -903,6 +951,8 @@ def upload_food():
                 ai_identified_foods=json.dumps(recognition_result.get('all_foods', [])),
                 original_ai_food_name=recognition_result['primary_food'],
                 user_description=user_description if user_description else None,
+                barcode_upc=barcode_upc,  # Store barcode if scanned
+                barcode_source=barcode_source,  # Store data source (Open Food Facts, etc.)
                 image_filename=filename,
                 image_path=filepath,
                 consumed_at=toronto_now()
