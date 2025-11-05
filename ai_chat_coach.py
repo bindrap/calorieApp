@@ -6,7 +6,7 @@ Natural language food/workout logging and personalized nutrition coaching
 
 import os
 import json
-import ollama
+from ollama import Client
 import re
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -22,8 +22,11 @@ class AIChatCoach:
         self.api_key = os.environ.get('OLLAMA_API_KEY', 'fe0c789532b44e988904c67a8bae43bd.s4tncu8N0QrXikNECVubiWGg')
         self.model = os.environ.get('OLLAMA_MODEL', 'gpt-oss:120b-cloud')
 
-        # Set API key for ollama library
-        os.environ['OLLAMA_API_KEY'] = self.api_key
+        # Configure Ollama Client for cloud
+        self.client = Client(
+            host='https://cloud.ollamaapi.com',
+            headers={'Authorization': f'Bearer {self.api_key}'}
+        )
 
         # Conversation history (in production, load from database)
         self.conversation_history = []
@@ -471,8 +474,8 @@ Keep it conversational and encouraging.
         """Simple AI call that returns text response using Ollama SDK"""
 
         try:
-            # Use Ollama SDK
-            response = ollama.chat(
+            # Use Ollama Cloud Client
+            response = self.client.chat(
                 model=self.model,
                 messages=[
                     {
