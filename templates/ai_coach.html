@@ -16,9 +16,20 @@
                 <div class="card-header bg-primary text-white d-flex align-items-center">
                     <i class="bi bi-robot me-2 fs-4"></i>
                     <h5 class="mb-0">AI Coach Chat</h5>
-                    <button class="btn btn-sm btn-light ms-auto" id="clearChatBtn">
-                        <i class="bi bi-trash"></i> Clear
-                    </button>
+                    <div class="ms-auto d-flex gap-2">
+                        <button class="btn btn-sm btn-light" id="saveConversationBtn" title="Save conversation">
+                            <i class="bi bi-save"></i> Save
+                        </button>
+                        <button class="btn btn-sm btn-light" id="loadConversationBtn" title="Load conversation">
+                            <i class="bi bi-folder-open"></i> Load
+                        </button>
+                        <button class="btn btn-sm btn-light" id="newChatBtn" title="New conversation">
+                            <i class="bi bi-plus-circle"></i> New
+                        </button>
+                        <button class="btn btn-sm btn-light" id="clearChatBtn" title="Clear current">
+                            <i class="bi bi-trash"></i> Clear
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body d-flex flex-column p-0" style="height: 600px;">
                     <!-- Chat Messages Area -->
@@ -281,6 +292,9 @@
     const sendBtn = document.getElementById('sendBtn');
     const voiceBtn = document.getElementById('voiceBtn');
     const clearChatBtn = document.getElementById('clearChatBtn');
+    const saveConversationBtn = document.getElementById('saveConversationBtn');
+    const loadConversationBtn = document.getElementById('loadConversationBtn');
+    const newChatBtn = document.getElementById('newChatBtn');
     const quickActions = document.querySelectorAll('.quick-action');
 
     // Conversation ID for tracking
@@ -320,9 +334,11 @@
             const isUser = msg.classList.contains('user-message');
             const contentEl = msg.querySelector('.message-text');
             if (contentEl) {
+                // Store raw markdown content using data attribute
+                const rawContent = contentEl.dataset.rawMarkdown || contentEl.textContent || contentEl.innerText;
                 messages.push({
                     role: isUser ? 'user' : 'assistant',
-                    content: contentEl.textContent || contentEl.innerText,
+                    content: rawContent,
                     data: null
                 });
             }
@@ -399,6 +415,9 @@
         const bgColor = isUser ? 'secondary' : 'primary';
         const alignClass = isUser ? 'flex-row-reverse' : '';
 
+        // Render markdown for display
+        const renderedContent = formatMessage(content);
+
         messageDiv.innerHTML = `
             <div class="d-flex align-items-start ${alignClass}">
                 <div class="avatar bg-${bgColor} text-white rounded-circle ${isUser ? 'ms-2' : 'me-2'} d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; min-width: 40px;">
@@ -406,7 +425,7 @@
                 </div>
                 <div class="message-content bg-white p-3 rounded shadow-sm" style="max-width: 80%;">
                     <p class="mb-1"><strong>${isUser ? 'You' : 'AI Coach'}</strong></p>
-                    <div class="message-text">${formatMessage(content)}</div>
+                    <div class="message-text" data-raw-markdown="${escapeHtml(content)}">${renderedContent}</div>
                     ${data && data.action_required === 'confirmation' ? '<div class="confirmation-buttons"></div>' : ''}
                 </div>
             </div>
@@ -417,6 +436,13 @@
 
         // Save conversation after adding message
         saveConversation();
+    }
+
+    // Helper to escape HTML for data attributes
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     // Format message with full markdown support
@@ -533,6 +559,98 @@
             chatInput.value = btn.dataset.message;
             chatForm.dispatchEvent(new Event('submit'));
         });
+    });
+
+    // Save conversation with name
+    saveConversationBtn.addEventListener('click', () => {
+        const name = prompt('Enter a name for this conversation:');
+        if (!name) return;
+
+        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
+        const conversationData = JSON.parse(localStorage.getItem('ai_coach_conversation'));
+
+        if (!conversationData || !conversationData.messages || conversationData.messages.length === 0) {
+            alert('No messages to save!');
+            return;
+        }
+
+        // Add or update conversation
+        const existing = savedConversations.findIndex(c => c.name === name);
+        const newConv = {
+            name: name,
+            id: conversationData.id,
+            messages: conversationData.messages,
+            timestamp: Date.now()
+        };
+
+        if (existing >= 0) {
+            if (confirm(`A conversation named "${name}" already exists. Overwrite?`)) {
+                savedConversations[existing] = newConv;
+            } else {
+                return;
+            }
+        } else {
+            savedConversations.push(newConv);
+        }
+
+        localStorage.setItem('ai_coach_saved_conversations', JSON.stringify(savedConversations));
+        alert(`Conversation "${name}" saved!`);
+    });
+
+    // Load conversation
+    loadConversationBtn.addEventListener('click', () => {
+        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
+
+        if (savedConversations.length === 0) {
+            alert('No saved conversations found!');
+            return;
+        }
+
+        // Create selection dialog
+        const names = savedConversations.map((c, i) => `${i + 1}. ${c.name} (${new Date(c.timestamp).toLocaleDateString()})`).join('\n');
+        const selection = prompt(`Select a conversation to load:\n\n${names}\n\nEnter the number:`);
+
+        if (!selection) return;
+
+        const index = parseInt(selection) - 1;
+        if (index < 0 || index >= savedConversations.length) {
+            alert('Invalid selection!');
+            return;
+        }
+
+        const conversation = savedConversations[index];
+
+        // Clear current messages (except welcome)
+        const messages = chatMessages.querySelectorAll('.message');
+        messages.forEach((msg, i) => {
+            if (i > 0) msg.remove();
+        });
+
+        // Load messages
+        conversation.messages.forEach(msg => {
+            addMessage(msg.content, msg.role, msg.data);
+        });
+
+        conversationId = conversation.id;
+        alert(`Loaded conversation "${conversation.name}"!`);
+    });
+
+    // New conversation
+    newChatBtn.addEventListener('click', () => {
+        if (confirm('Start a new conversation? Current conversation will be auto-saved.')) {
+            // Clear messages
+            const messages = chatMessages.querySelectorAll('.message');
+            messages.forEach((msg, index) => {
+                if (index > 0) msg.remove();
+            });
+
+            // Create new conversation ID
+            conversationId = generateConversationId();
+            pendingConfirmation = null;
+
+            // Clear auto-save
+            localStorage.removeItem('ai_coach_conversation');
+        }
     });
 
     // Clear chat
