@@ -40,10 +40,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
 import os
 
-# Ensure instance directory exists
-os.makedirs('instance', exist_ok=True)
+# Ensure instance directory exists with absolute path
+instance_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance')
+os.makedirs(instance_dir, exist_ok=True)
 
-database_path = os.environ.get('DATABASE_PATH', 'instance/calorie_tracker.db')
+database_path = os.environ.get('DATABASE_PATH', os.path.join(instance_dir, 'calorie_tracker.db'))
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -2110,6 +2111,10 @@ def allowed_file(filename):
 
 def init_db():
     """Initialize database with schema and sample data"""
+    print(f"📊 Initializing database at: {database_path}")
+    print(f"📁 Instance directory: {instance_dir}")
+    print(f"✅ Instance directory exists: {os.path.exists(instance_dir)}")
+
     with app.app_context():
         db.create_all()
 
