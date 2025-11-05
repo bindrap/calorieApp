@@ -113,23 +113,41 @@ def calculate_accurate_calories(food_name: str, weight_grams: float = None) -> d
     nutrition_data = get_enhanced_nutrition_data(food_name)
 
     if nutrition_data:
-        # Use typical weight if no weight provided
-        if weight_grams is None:
-            weight_grams = nutrition_data.get('typical_weight', 100)
+        # For branded/fast food items with typical calories, use those unless weight is explicitly provided
+        # This ensures "Big Mac" returns 570 calories, not 257 calories for 100g
+        has_typical_data = 'typical_calories' in nutrition_data and 'typical_weight' in nutrition_data
 
-        # Use typical calories if available, otherwise calculate from per-100g data
-        if 'typical_calories' in nutrition_data and weight_grams == nutrition_data.get('typical_weight'):
+        if has_typical_data and weight_grams is None:
+            # No weight provided - use typical values for this branded item
+            weight_grams = nutrition_data['typical_weight']
+            calories = nutrition_data['typical_calories']
+        elif has_typical_data and weight_grams <= 150:
+            # Weight provided but seems too low for a branded item (likely estimated from image)
+            # Use typical values instead
+            print(f"⚠️ Using typical serving size ({nutrition_data['typical_weight']}g) for branded item instead of estimated {weight_grams}g")
+            weight_grams = nutrition_data['typical_weight']
             calories = nutrition_data['typical_calories']
         else:
-            # Scale from per-100g data
-            scale_factor = weight_grams / 100.0
-            calories = nutrition_data['calories_per_100g'] * scale_factor
+            # Use provided weight or default to 100g
+            if weight_grams is None:
+                weight_grams = 100
+
+            # Use typical calories if weight matches typical weight
+            if has_typical_data and abs(weight_grams - nutrition_data['typical_weight']) < 10:
+                calories = nutrition_data['typical_calories']
+            else:
+                # Scale from per-100g data
+                scale_factor = weight_grams / 100.0
+                calories = nutrition_data['calories_per_100g'] * scale_factor
+
+        # Calculate macros proportionally based on actual weight
+        scale_factor = weight_grams / 100.0
 
         return {
             'total_calories': round(calories, 1),
-            'protein': round(nutrition_data.get('protein_per_100g', 0) * (weight_grams / 100.0), 1),
-            'carbs': round(nutrition_data.get('carbs_per_100g', 0) * (weight_grams / 100.0), 1),
-            'fat': round(nutrition_data.get('fat_per_100g', 0) * (weight_grams / 100.0), 1),
+            'protein': round(nutrition_data.get('protein_per_100g', 0) * scale_factor, 1),
+            'carbs': round(nutrition_data.get('carbs_per_100g', 0) * scale_factor, 1),
+            'fat': round(nutrition_data.get('fat_per_100g', 0) * scale_factor, 1),
             'weight_grams': weight_grams,
             'data_source': 'enhanced_database',
             'accuracy': 'high'
