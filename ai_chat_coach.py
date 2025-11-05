@@ -6,7 +6,7 @@ Natural language food/workout logging and personalized nutrition coaching
 
 import os
 import json
-import requests
+import ollama
 import re
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -18,10 +18,12 @@ class AIChatCoach:
     """
 
     def __init__(self):
-        # Use correct Ollama API endpoint
-        self.base_url = os.environ.get('OLLAMA_BASE_URL', 'https://ollama.com')
+        # Use Ollama Cloud SDK
         self.api_key = os.environ.get('OLLAMA_API_KEY', 'fe0c789532b44e988904c67a8bae43bd.s4tncu8N0QrXikNECVubiWGg')
-        self.model = os.environ.get('OLLAMA_MODEL', 'gpt-oss:120b')
+        self.model = os.environ.get('OLLAMA_MODEL', 'gpt-oss:120b-cloud')
+
+        # Set API key for ollama library
+        os.environ['OLLAMA_API_KEY'] = self.api_key
 
         # Conversation history (in production, load from database)
         self.conversation_history = []
@@ -466,38 +468,21 @@ Keep it conversational and encouraging.
             return {'error': str(e), 'needs_clarification': True}
 
     def _call_ai_simple(self, prompt: str) -> str:
-        """Simple AI call that returns text response"""
-
-        headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
-
-        payload = {
-            'model': self.model,
-            'messages': [
-                {
-                    'role': 'user',
-                    'content': prompt
-                }
-            ],
-            'stream': False
-        }
+        """Simple AI call that returns text response using Ollama SDK"""
 
         try:
-            # Use correct Ollama API endpoint
-            response = requests.post(
-                f"{self.base_url}/api/chat",
-                headers=headers,
-                json=payload,
-                timeout=20
+            # Use Ollama SDK
+            response = ollama.chat(
+                model=self.model,
+                messages=[
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ]
             )
-            response.raise_for_status()
 
-            result = response.json()
-            # Ollama uses 'message' not 'choices'
-            content = result.get('message', {}).get('content', '')
-
+            content = response['message']['content']
             return content
 
         except Exception as e:

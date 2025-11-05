@@ -8,14 +8,14 @@ import os
 import base64
 import json
 import logging
-import requests
+import ollama
 from pathlib import Path
 from typing import Dict, List, Optional
 from PIL import Image
 import io
 
 # Configuration
-OLLAMA_MODEL = "gpt-oss:120b"
+OLLAMA_MODEL = "gpt-oss:120b-cloud"
 API_KEY = "fe0c789532b44e988904c67a8bae43bd.s4tncu8N0QrXikNECVubiWGg"
 
 class FoodRecognizer:
@@ -24,12 +24,9 @@ class FoodRecognizer:
     def __init__(self, model: str = OLLAMA_MODEL, api_key: Optional[str] = None):
         self.model = model
         self.api_key = api_key or os.getenv("OLLAMA_API_KEY", API_KEY)
-        self.base_url = "https://ollama.com"
 
-        self.headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
+        # Set API key for ollama library
+        os.environ['OLLAMA_API_KEY'] = self.api_key
 
     def analyze_image(self, image_path: str, user_description: Optional[str] = None) -> Dict:
         """
@@ -257,23 +254,14 @@ Respond ONLY with valid JSON in this exact format:
     "description": "reasoning for identification"
 }}"""
 
-            payload = {
-                "model": self.model,
-                "messages": [{"role": "user", "content": prompt}],
-                "stream": False
-            }
-
-            response = requests.post(
-                f"{self.base_url}/api/chat",
-                json=payload,
-                headers=self.headers,
-                timeout=15
+            # Use Ollama SDK
+            response = ollama.chat(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}]
             )
 
-            if response.status_code == 200:
-                data = response.json()
-                content = data.get('message', {}).get('content', '')
-                return self._parse_ai_response(content)
+            content = response.get('message', {}).get('content', '')
+            return self._parse_ai_response(content)
 
         except Exception as e:
             print(f"⚠️ AI enhancement failed: {e}")
@@ -365,20 +353,13 @@ Respond ONLY with valid JSON in this exact format:
     def test_connection(self) -> bool:
         """Test if the API connection is working"""
         try:
-            payload = {
-                "model": self.model,
-                "messages": [{"role": "user", "content": "Hello"}],
-                "stream": False
-            }
-
-            response = requests.post(
-                f"{self.base_url}/api/chat",
-                json=payload,
-                headers=self.headers,
-                timeout=10
+            # Use Ollama SDK to test connection
+            response = ollama.chat(
+                model=self.model,
+                messages=[{"role": "user", "content": "Hello"}]
             )
 
-            return response.status_code == 200
+            return 'message' in response
 
         except Exception as e:
             print(f"❌ Connection test failed: {e}")
