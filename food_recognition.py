@@ -202,6 +202,10 @@ class FoodRecognizer:
             color_desc = ", ".join([f"RGB({r},{g},{b})" for r, g, b in colors[:3]]) if colors else "unknown colors"
 
             # Build prompt with user description as highest priority
+            # Convert food_inference dict to string to avoid unhashable type error
+            food_inference = image_analysis.get('food_inference', {})
+            food_inference_str = str(food_inference) if food_inference else "none"
+
             if user_description and user_description.strip():
                 prompt = f"""You are a food nutrition expert. A user has provided the following description of their food, along with image analysis data. Your task is to identify the food and estimate nutritional information with HIGH ACCURACY.
 
@@ -211,7 +215,7 @@ Additional context from image analysis:
 - Filename clues: {filename_info.get('filename', 'unknown')}
 - Detected foods from filename: {filename_info.get('detected_foods', [])}
 - Image dominant colors: {color_desc}
-- Color-based inference: {image_analysis.get('food_inference', {{}})}
+- Color-based inference: {food_inference_str}
 
 IMPORTANT INSTRUCTIONS:
 1. Trust the user's description ABOVE ALL - it's the most accurate source
@@ -237,7 +241,7 @@ Respond ONLY with valid JSON in this exact format:
 Filename clues: {filename_info.get('filename', 'unknown')}
 Detected foods from filename: {filename_info.get('detected_foods', [])}
 Image dominant colors: {color_desc}
-Color-based inference: {image_analysis.get('food_inference', {{}})}
+Color-based inference: {food_inference_str}
 
 Based on this information, what is the most likely food item? Consider:
 1. The filename might contain food names
