@@ -6,7 +6,7 @@ AI-powered food recognition and calorie tracking system
 
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import pytz
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, make_response, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
@@ -28,6 +28,12 @@ from activity_database import (
     get_activities_by_category,
     ACTIVITY_DATABASE
 )
+
+# Import advanced features modules
+from ai_chat_coach import AIChatCoach
+from gamification_service import GamificationService
+from meal_suggestion_engine import MealSuggestionEngine
+from multi_item_recognition import MultiItemFoodRecognizer, SmartPortionEstimator
 
 # Flask app configuration
 app = Flask(__name__)
@@ -51,6 +57,12 @@ login_manager.login_view = 'login'
 # Initialize our custom services
 food_recognizer = FoodRecognizer()
 calorie_calculator = CalorieCalculator()
+
+# Initialize advanced features services
+ai_coach = AIChatCoach()
+gamification_service = GamificationService()
+meal_suggester = MealSuggestionEngine()
+multi_item_recognizer = MultiItemFoodRecognizer()
 
 # Toronto timezone helper
 def toronto_now():
@@ -1625,6 +1637,466 @@ def manifest():
     """Serve the PWA manifest file"""
     from flask import send_from_directory
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
+
+
+# ==================== ADVANCED FEATURES HELPER FUNCTIONS ====================
+
+def get_user_context(user_id):
+    """Get user's current context for AI coach"""
+    user = User.query.get(user_id)
+    settings = UserSettings.query.filter_by(user_id=user_id).first()
+
+    if not settings:
+        return {
+            'consumed_today': {'calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0},
+            'goals': {'calories': 3000, 'protein': 160, 'carbs': 375, 'fat': 100},
+            'remaining': {'calories': 3000, 'protein': 160, 'carbs': 375, 'fat': 100}
+        }
+
+    # Get today's food entries
+    today = date.today()
+    food_entries = FoodEntry.query.filter(
+        FoodEntry.user_id == user_id,
+        func.date(FoodEntry.consumed_at) == today
+    ).all()
+
+    # Calculate consumed
+    consumed = {
+        'calories': sum(float(entry.calories or 0) for entry in food_entries),
+        'protein': sum(float(entry.protein or 0) for entry in food_entries),
+        'carbs': sum(float(entry.carbs or 0) for entry in food_entries),
+        'fat': sum(float(entry.fat or 0) for entry in food_entries)
+    }
+
+    # Get workouts
+    workout_entries = WorkoutEntry.query.filter(
+        WorkoutEntry.user_id == user_id,
+        func.date(WorkoutEntry.logged_at) == today
+    ).all()
+
+    calories_burned = sum(float(entry.calories_burned or 0) for entry in workout_entries)
+
+    goals = {
+        'calories': settings.calorie_goal,
+        'protein': settings.protein_goal,
+        'carbs': settings.carb_goal,
+        'fat': settings.fat_goal
+    }
+
+    remaining = {
+        'calories': goals['calories'] - consumed['calories'] + calories_burned,
+        'protein': goals['protein'] - consumed['protein'],
+        'carbs': goals['carbs'] - consumed['carbs'],
+        'fat': goals['fat'] - consumed['fat']
+    }
+
+    return {
+        'consumed_today': consumed,
+        'goals': goals,
+        'remaining': remaining,
+        'calories_burned': calories_burned
+    }
+
+
+def get_or_create_user_level(user_id):
+    """Get or create user level data"""
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+
+        if 'user_levels' not in tables:
+            return {
+                'current_level': 1, 'current_xp': 0, 'xp_for_next_level': 100,
+                'total_xp_earned': 0, 'achievement_points': 0, 'total_food_logs': 0,
+                'total_workouts': 0, 'total_days_active': 0, 'current_title': 'Beginner'
+            }
+
+        result = db.session.execute(
+            "SELECT * FROM user_levels WHERE user_id = ?", (user_id,)
+        ).fetchone()
+
+        if result:
+            return {
+                'current_level': result[2] if len(result) > 2 else 1,
+                'current_xp': result[3] if len(result) > 3 else 0,
+                'xp_for_next_level': result[4] if len(result) > 4 else 100,
+                'total_xp_earned': result[5] if len(result) > 5 else 0,
+                'achievement_points': result[6] if len(result) > 6 else 0,
+                'total_food_logs': result[7] if len(result) > 7 else 0,
+                'total_workouts': result[8] if len(result) > 8 else 0,
+                'total_days_active': result[9] if len(result) > 9 else 0,
+                'current_title': result[11] if len(result) > 11 else 'Beginner'
+            }
+        else:
+            db.session.execute(
+                """INSERT INTO user_levels (user_id, current_level, current_xp, xp_for_next_level,
+                   total_xp_earned, achievement_points, total_food_logs, total_workouts,
+                   total_days_active, current_title) VALUES (?, 1, 0, 100, 0, 0, 0, 0, 0, 'Beginner')""",
+                (user_id,)
+            )
+            db.session.commit()
+            return {
+                'current_level': 1, 'current_xp': 0, 'xp_for_next_level': 100,
+                'total_xp_earned': 0, 'achievement_points': 0, 'total_food_logs': 0,
+                'total_workouts': 0, 'total_days_active': 0, 'current_title': 'Beginner'
+            }
+    except Exception as e:
+        print(f"Error getting user level: {e}")
+        return {
+            'current_level': 1, 'current_xp': 0, 'xp_for_next_level': 100,
+            'total_xp_earned': 0, 'achievement_points': 0, 'total_food_logs': 0,
+            'total_workouts': 0, 'total_days_active': 0, 'current_title': 'Beginner'
+        }
+
+
+def get_user_streaks(user_id):
+    """Get user's streaks"""
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if 'user_streaks' not in inspector.get_table_names():
+            return {
+                'food_logging': {'current_streak_days': 0, 'longest_streak_days': 0},
+                'workout': {'current_streak_days': 0, 'longest_streak_days': 0},
+                'goal_hitting': {'current_streak_days': 0, 'longest_streak_days': 0}
+            }
+
+        streaks = {}
+        for streak_type in ['food_logging', 'workout', 'goal_hitting']:
+            result = db.session.execute(
+                "SELECT current_streak_days, longest_streak_days FROM user_streaks WHERE user_id = ? AND streak_type = ?",
+                (user_id, streak_type)
+            ).fetchone()
+            streaks[streak_type] = {
+                'current_streak_days': result[0] if result else 0,
+                'longest_streak_days': result[1] if result else 0
+            }
+        return streaks
+    except Exception as e:
+        print(f"Error getting streaks: {e}")
+        return {
+            'food_logging': {'current_streak_days': 0, 'longest_streak_days': 0},
+            'workout': {'current_streak_days': 0, 'longest_streak_days': 0},
+            'goal_hitting': {'current_streak_days': 0, 'longest_streak_days': 0}
+        }
+
+
+# ==================== AI COACH ROUTES ====================
+
+@app.route('/ai-coach')
+@login_required
+def ai_coach_page():
+    """Render AI coach chat interface"""
+    return render_template('ai_coach.html')
+
+
+@app.route('/api/chat', methods=['POST'])
+@login_required
+def chat():
+    """Process chat messages"""
+    try:
+        data = request.json
+        message = data.get('message', '').strip()
+        conversation_id = data.get('conversation_id')
+        confirmation_data = data.get('confirmation_data')
+
+        if not message:
+            return jsonify({'error': 'Message is required'}), 400
+
+        context = get_user_context(current_user.id)
+
+        if confirmation_data and message.lower() in ['confirm', 'cancel']:
+            if message.lower() == 'confirm':
+                intent = confirmation_data.get('intent')
+                if intent == 'log_food':
+                    extracted = confirmation_data.get('extracted_data', {})
+                    nutrition = confirmation_data.get('estimated_nutrition', {})
+                    foods_text = ', '.join([f"{food['name']}" for food in extracted.get('foods', [])])
+                    entry = FoodEntry(
+                        user_id=current_user.id, food_name=foods_text,
+                        calories=nutrition.get('calories', 0), protein=nutrition.get('protein', 0),
+                        carbs=nutrition.get('carbs', 0), fat=nutrition.get('fat', 0),
+                        consumed_at=toronto_now()
+                    )
+                    db.session.add(entry)
+                    db.session.commit()
+                    return jsonify({
+                        'intent': 'log_food', 'status': 'completed',
+                        'response': f'✅ Logged {foods_text}! Entry saved successfully.',
+                        'action_required': None
+                    })
+                elif intent == 'log_workout':
+                    extracted = confirmation_data.get('extracted_data', {})
+                    calories = confirmation_data.get('estimated_calories', 0)
+                    entry = WorkoutEntry(
+                        user_id=current_user.id, activity_type=extracted.get('activity_type', 'Unknown'),
+                        intensity=extracted.get('intensity', 'moderate'),
+                        duration_minutes=extracted.get('duration_minutes', 0),
+                        calories_burned=calories, logged_at=toronto_now()
+                    )
+                    db.session.add(entry)
+                    db.session.commit()
+                    return jsonify({
+                        'intent': 'log_workout', 'status': 'completed',
+                        'response': f'✅ Logged {extracted.get("activity_type")}! Workout saved successfully.',
+                        'action_required': None
+                    })
+            else:
+                return jsonify({
+                    'intent': 'cancel', 'status': 'cancelled',
+                    'response': 'Okay, cancelled. Let me know if you need anything else!',
+                    'action_required': None
+                })
+
+        result = ai_coach.process_message(message, context)
+        return jsonify(result)
+
+    except Exception as e:
+        print(f"Error in chat: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'intent': 'error', 'status': 'error',
+            'response': 'Sorry, I encountered an error. Please try again.',
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/daily-stats')
+@login_required
+def daily_stats():
+    """Get today's consumption and remaining macros"""
+    try:
+        context = get_user_context(current_user.id)
+        return jsonify(context)
+    except Exception as e:
+        print(f"Error getting daily stats: {e}")
+        return jsonify({
+            'consumed': {'calories': 0, 'protein': 0, 'carbs': 0, 'fat': 0},
+            'goals': {'calories': 3000, 'protein': 160, 'carbs': 375, 'fat': 100},
+            'remaining': {'calories': 3000, 'protein': 160, 'carbs': 375, 'fat': 100}
+        })
+
+
+# ==================== HEALTH TIMELINE ROUTES ====================
+
+@app.route('/health-timeline')
+@login_required
+def health_timeline_page():
+    """Render health timeline page"""
+    return render_template('health_timeline.html')
+
+
+@app.route('/api/health-timeline')
+@login_required
+def health_timeline_api():
+    """Get health timeline events"""
+    try:
+        date_range = request.args.get('range', 'week')
+        filters = json.loads(request.args.get('filters', '{"food": true, "workout": true}'))
+
+        today = date.today()
+        if date_range == 'today':
+            start_date = end_date = today
+        elif date_range == 'yesterday':
+            start_date = end_date = today - timedelta(days=1)
+        elif date_range == 'week':
+            start_date, end_date = today - timedelta(days=7), today
+        else:
+            start_date, end_date = today - timedelta(days=30), today
+
+        events = []
+
+        if filters.get('food', True):
+            for entry in FoodEntry.query.filter(
+                FoodEntry.user_id == current_user.id,
+                func.date(FoodEntry.consumed_at) >= start_date,
+                func.date(FoodEntry.consumed_at) <= end_date
+            ).all():
+                events.append({
+                    'event_type': 'food', 'title': entry.food_name,
+                    'occurred_at': entry.consumed_at.isoformat(),
+                    'calories_net': float(entry.calories or 0),
+                    'data': {'calories': float(entry.calories or 0), 'protein': float(entry.protein or 0),
+                            'carbs': float(entry.carbs or 0), 'fat': float(entry.fat or 0)},
+                    'source': 'manual'
+                })
+
+        if filters.get('workout', True):
+            for entry in WorkoutEntry.query.filter(
+                WorkoutEntry.user_id == current_user.id,
+                func.date(WorkoutEntry.logged_at) >= start_date,
+                func.date(WorkoutEntry.logged_at) <= end_date
+            ).all():
+                events.append({
+                    'event_type': 'workout', 'title': entry.activity_type,
+                    'occurred_at': entry.logged_at.isoformat(),
+                    'duration_minutes': entry.duration_minutes,
+                    'calories_net': -float(entry.calories_burned or 0),
+                    'data': {'activity': entry.activity_type, 'intensity': entry.intensity,
+                            'duration': entry.duration_minutes, 'calories_burned': float(entry.calories_burned or 0)},
+                    'source': 'manual'
+                })
+
+        events.sort(key=lambda x: x['occurred_at'], reverse=True)
+
+        summary = {
+            'net_calories': int(sum(e.get('calories_net', 0) for e in events)),
+            'workout_count': sum(1 for e in events if e['event_type'] == 'workout'),
+            'avg_sleep_hours': None, 'avg_mood': None
+        }
+
+        return jsonify({'events': events, 'summary': summary})
+    except Exception as e:
+        print(f"Error getting timeline: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'events': [], 'summary': {}}), 500
+
+
+# ==================== GAMIFICATION ROUTES ====================
+
+@app.route('/gamification')
+@login_required
+def gamification_page():
+    """Render gamification dashboard"""
+    return render_template('gamification.html')
+
+
+@app.route('/api/gamification/stats')
+@login_required
+def gamification_stats():
+    """Get gamification stats"""
+    try:
+        level_data = get_or_create_user_level(current_user.id)
+        streaks = get_user_streaks(current_user.id)
+
+        achievements = [
+            {'id': 1, 'name': 'First Workout', 'description': 'Complete your first workout',
+             'icon': '🎯', 'category': 'milestone', 'points': 10,
+             'unlocked': level_data['total_workouts'] >= 1,
+             'progress': min(level_data['total_workouts'], 1), 'criteria_value': 1, 'unlocked_at': None},
+            {'id': 2, 'name': '10 Workouts', 'description': 'Complete 10 workouts',
+             'icon': '💪', 'category': 'milestone', 'points': 100,
+             'unlocked': level_data['total_workouts'] >= 10,
+             'progress': min(level_data['total_workouts'], 10), 'criteria_value': 10, 'unlocked_at': None},
+            {'id': 3, 'name': '7 Day Streak', 'description': 'Log for 7 days in a row',
+             'icon': '🔥', 'category': 'streak', 'points': 200,
+             'unlocked': streaks['food_logging']['current_streak_days'] >= 7,
+             'progress': min(streaks['food_logging']['current_streak_days'], 7), 'criteria_value': 7, 'unlocked_at': None}
+        ]
+
+        return jsonify({'level': level_data, 'streaks': streaks, 'achievements': achievements})
+    except Exception as e:
+        print(f"Error getting gamification stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'level': {'current_level': 1, 'current_xp': 0, 'xp_for_next_level': 100, 'total_xp_earned': 0,
+                     'achievement_points': 0, 'total_food_logs': 0, 'total_workouts': 0, 'total_days_active': 0,
+                     'current_title': 'Beginner'},
+            'streaks': {'food_logging': {'current_streak_days': 0, 'longest_streak_days': 0},
+                       'workout': {'current_streak_days': 0, 'longest_streak_days': 0},
+                       'goal_hitting': {'current_streak_days': 0, 'longest_streak_days': 0}},
+            'achievements': []
+        })
+
+
+# ==================== MOOD TRACKING ROUTES ====================
+
+@app.route('/mood-tracker')
+@login_required
+def mood_tracker_page():
+    """Render mood tracker page"""
+    return render_template('mood_tracker.html')
+
+
+@app.route('/api/mood/log', methods=['POST'])
+@login_required
+def log_mood():
+    """Log mood entry"""
+    try:
+        data = request.json
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if 'mood_entries' not in inspector.get_table_names():
+            return jsonify({'error': 'Mood tracking not available. Please run database migration.'}), 400
+
+        db.session.execute(
+            """INSERT INTO mood_entries (user_id, mood_score, energy_level, stress_level, motivation, emotions, notes, logged_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (current_user.id, data['mood_score'], data['energy_level'], data['stress_level'],
+             data['motivation'], json.dumps(data['emotions']), data.get('notes', ''), datetime.utcnow())
+        )
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Mood entry logged successfully'})
+    except Exception as e:
+        print(f"Error logging mood: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/mood/recent')
+@login_required
+def recent_moods():
+    """Get recent mood entries"""
+    try:
+        limit = int(request.args.get('limit', 5))
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if 'mood_entries' not in inspector.get_table_names():
+            return jsonify([])
+
+        results = db.session.execute(
+            """SELECT mood_score, energy_level, stress_level, motivation, emotions, notes, logged_at
+               FROM mood_entries WHERE user_id = ? ORDER BY logged_at DESC LIMIT ?""",
+            (current_user.id, limit)
+        ).fetchall()
+
+        return jsonify([{
+            'mood_score': row[0], 'energy_level': row[1], 'stress_level': row[2], 'motivation': row[3],
+            'emotions': row[4], 'notes': row[5], 'logged_at': row[6].isoformat() if isinstance(row[6], datetime) else row[6]
+        } for row in results])
+    except Exception as e:
+        print(f"Error getting recent moods: {e}")
+        return jsonify([])
+
+
+@app.route('/api/mood/today-summary')
+@login_required
+def today_mood_summary():
+    """Get today's mood summary"""
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if 'mood_entries' not in inspector.get_table_names():
+            return jsonify({'count': 0})
+
+        today = date.today()
+        results = db.session.execute(
+            """SELECT mood_score, energy_level, stress_level, motivation
+               FROM mood_entries WHERE user_id = ? AND date(logged_at) = ?""",
+            (current_user.id, today)
+        ).fetchall()
+
+        if not results:
+            return jsonify({'count': 0})
+
+        return jsonify({
+            'count': len(results),
+            'avg_mood': sum(row[0] for row in results) / len(results),
+            'avg_energy': sum(row[1] for row in results) / len(results),
+            'avg_stress': sum(row[2] for row in results) / len(results),
+            'avg_motivation': sum(row[3] for row in results) / len(results)
+        })
+    except Exception as e:
+        print(f"Error getting today summary: {e}")
+        return jsonify({'count': 0})
+
+
+# ==================== END OF ADVANCED FEATURES ROUTES ====================
 
 def allowed_file(filename):
     """Check if uploaded file is allowed"""
