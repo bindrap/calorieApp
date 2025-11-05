@@ -21,6 +21,13 @@ from pathlib import Path
 from food_recognition import FoodRecognizer
 from calorie_calculator import CalorieCalculator
 from barcode_scanner import scan_for_nutrition
+from activity_database import (
+    get_activity_list,
+    get_activity_info,
+    get_met_value,
+    get_activities_by_category,
+    ACTIVITY_DATABASE
+)
 
 # Flask app configuration
 app = Flask(__name__)
@@ -190,7 +197,143 @@ class WorkoutEntry(db.Model):
     duration_minutes = db.Column(db.Integer, nullable=False)  # Workout duration in minutes
     exertion_rating = db.Column(db.Integer)  # Perceived exertion scale 1-10
     calories_burned = db.Column(db.Numeric(8,2), nullable=False)  # Calculated calories burned
+
+    # Activity-Specific Fields (NEW - for detailed tracking)
+    distance_km = db.Column(db.Numeric(8,2))  # For running, cycling, swimming
+    pace_min_per_km = db.Column(db.Numeric(5,2))  # For running (minutes per km)
+    elevation_gain_m = db.Column(db.Numeric(8,2))  # For running, hiking, cycling
+
+    # Swimming specific
+    laps = db.Column(db.Integer)  # Number of laps
+    pool_length_m = db.Column(db.Integer)  # Pool length (25m or 50m typically)
+    stroke_type = db.Column(db.String(50))  # Freestyle, backstroke, etc.
+
+    # Strength training specific
+    exercises = db.Column(db.Text)  # JSON array of exercises
+    total_sets = db.Column(db.Integer)  # Total sets across all exercises
+    total_reps = db.Column(db.Integer)  # Total reps
+    total_weight_kg = db.Column(db.Numeric(8,2))  # Total weight lifted (volume)
+
+    # Combat sports specific
+    rounds = db.Column(db.Integer)  # Number of rounds
+
+    # Miscellaneous
+    notes = db.Column(db.Text)  # User notes about the workout
+    equipment = db.Column(db.String(200))  # Equipment used
+    location = db.Column(db.String(200))  # Where workout was performed
+
+    # Template relationship (if created from template)
+    template_id = db.Column(db.Integer, db.ForeignKey('workout_templates.id'))
+
     logged_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class WorkoutGoal(db.Model):
+    __tablename__ = 'workout_goals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Goal details
+    goal_type = db.Column(db.String(50), nullable=False)  # 'calories_burned', 'workout_count', 'duration_minutes'
+    target_value = db.Column(db.Numeric(10,2), nullable=False)  # Target to reach
+    current_value = db.Column(db.Numeric(10,2), default=0)  # Current progress
+
+    # Time period
+    period = db.Column(db.String(20), nullable=False)  # 'daily', 'weekly', 'monthly'
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+
+    # Optional activity-specific goal
+    activity_type = db.Column(db.String(100))  # If goal is for specific activity
+
+    # Status
+    is_completed = db.Column(db.Boolean, default=False)
+    completed_at = db.Column(db.DateTime)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class WorkoutTemplate(db.Model):
+    __tablename__ = 'workout_templates'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # Template details
+    name = db.Column(db.String(200), nullable=False)  # "Tuesday 5K Run", "Leg Day"
+    description = db.Column(db.Text)
+    activity_type = db.Column(db.String(100), nullable=False)
+    intensity = db.Column(db.String(20), nullable=False)
+    default_duration_minutes = db.Column(db.Integer)
+
+    # Template-specific fields (JSON for flexibility)
+    template_data = db.Column(db.Text)  # JSON: exercises, sets, reps, etc.
+
+    # Usage statistics
+    times_used = db.Column(db.Integer, default=0)
+    last_used = db.Column(db.DateTime)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Achievement(db.Model):
+    __tablename__ = 'achievements'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Achievement details
+    name = db.Column(db.String(100), nullable=False)  # "First Workout", "100 Workouts"
+    description = db.Column(db.Text)
+    icon = db.Column(db.String(10))  # Emoji icon
+    category = db.Column(db.String(50))  # 'milestone', 'streak', 'pr', 'volume'
+
+    # Unlock criteria
+    criteria_type = db.Column(db.String(50), nullable=False)  # 'workout_count', 'calories_burned', 'streak_days'
+    criteria_value = db.Column(db.Numeric(10,2), nullable=False)
+
+    # Reward (optional)
+    points = db.Column(db.Integer, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class UserAchievement(db.Model):
+    __tablename__ = 'user_achievements'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    achievement_id = db.Column(db.Integer, db.ForeignKey('achievements.id'), nullable=False)
+
+    # When unlocked
+    unlocked_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Progress tracking
+    progress_value = db.Column(db.Numeric(10,2))  # Current progress toward this achievement
+
+    # Relationship
+    achievement = db.relationship('Achievement', backref='user_achievements')
+
+class PersonalRecord(db.Model):
+    __tablename__ = 'personal_records'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # PR details
+    activity_type = db.Column(db.String(100), nullable=False)
+    record_type = db.Column(db.String(50), nullable=False)  # 'fastest_5k', 'max_bench_press', 'longest_run'
+    value = db.Column(db.Numeric(10,2), nullable=False)  # The PR value
+    unit = db.Column(db.String(20))  # 'minutes', 'kg', 'km', etc.
+
+    # When achieved
+    workout_entry_id = db.Column(db.Integer, db.ForeignKey('workout_entries.id'))
+    achieved_at = db.Column(db.DateTime, nullable=False)
+
+    # Previous record (for improvement tracking)
+    previous_value = db.Column(db.Numeric(10,2))
+    improvement = db.Column(db.Numeric(10,2))  # How much improved
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
