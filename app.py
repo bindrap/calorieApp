@@ -39,6 +39,10 @@ from multi_item_recognition import MultiItemFoodRecognizer, SmartPortionEstimato
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
 import os
+
+# Ensure instance directory exists
+os.makedirs('instance', exist_ok=True)
+
 database_path = os.environ.get('DATABASE_PATH', 'instance/calorie_tracker.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{database_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
