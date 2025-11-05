@@ -2,6 +2,11 @@
 
 {% block title %}AI Coach - Calorie Tracker{% endblock %}
 
+{% block head %}
+<!-- Marked.js for markdown rendering -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
@@ -192,6 +197,80 @@
     .confirmation-buttons {
         margin-top: 10px;
     }
+
+    /* Markdown styling for AI responses */
+    .message-text table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 0.9rem;
+    }
+
+    .message-text table th,
+    .message-text table td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        text-align: left;
+    }
+
+    .message-text table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .message-text table tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    .message-text h1, .message-text h2, .message-text h3,
+    .message-text h4, .message-text h5, .message-text h6 {
+        margin-top: 15px;
+        margin-bottom: 10px;
+        font-weight: 600;
+    }
+
+    .message-text h2 {
+        font-size: 1.3rem;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 5px;
+    }
+
+    .message-text h3 {
+        font-size: 1.1rem;
+    }
+
+    .message-text ul, .message-text ol {
+        margin-left: 20px;
+        margin-bottom: 10px;
+    }
+
+    .message-text code {
+        background-color: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+
+    .message-text pre {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+    }
+
+    .message-text blockquote {
+        border-left: 4px solid #6c757d;
+        padding-left: 15px;
+        margin: 10px 0;
+        color: #6c757d;
+    }
+
+    .message-text hr {
+        margin: 20px 0;
+        border: 0;
+        border-top: 1px solid #dee2e6;
+    }
 </style>
 
 <script>
@@ -205,11 +284,55 @@
     const quickActions = document.querySelectorAll('.quick-action');
 
     // Conversation ID for tracking
-    let conversationId = generateConversationId();
+    let conversationId = loadOrCreateConversation();
     let pendingConfirmation = null;
 
     function generateConversationId() {
         return 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Load or create conversation
+    function loadOrCreateConversation() {
+        const saved = localStorage.getItem('ai_coach_conversation');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                // Restore messages
+                if (data.messages && Array.isArray(data.messages)) {
+                    data.messages.forEach(msg => {
+                        addMessage(msg.content, msg.role, msg.data);
+                    });
+                }
+                return data.id;
+            } catch (e) {
+                console.error('Error loading conversation:', e);
+            }
+        }
+        return generateConversationId();
+    }
+
+    // Save conversation to localStorage
+    function saveConversation() {
+        const messages = [];
+        document.querySelectorAll('#chatMessages .message').forEach((msg, index) => {
+            if (index === 0) return; // Skip welcome message
+
+            const isUser = msg.classList.contains('user-message');
+            const contentEl = msg.querySelector('.message-text');
+            if (contentEl) {
+                messages.push({
+                    role: isUser ? 'user' : 'assistant',
+                    content: contentEl.textContent || contentEl.innerText,
+                    data: null
+                });
+            }
+        });
+
+        localStorage.setItem('ai_coach_conversation', JSON.stringify({
+            id: conversationId,
+            messages: messages,
+            timestamp: Date.now()
+        }));
     }
 
     // Send message
@@ -291,24 +414,28 @@
 
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Save conversation after adding message
+        saveConversation();
     }
 
-    // Format message with markdown-like syntax
+    // Format message with full markdown support
     function formatMessage(text) {
-        // Convert newlines to <br>
-        text = text.replace(/\n/g, '<br>');
-
-        // Bold text **text**
-        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-
-        // Bullet points
-        text = text.replace(/^• (.+)$/gm, '<li>$1</li>');
-
-        // Wrap lists
-        if (text.includes('<li>')) {
-            text = text.replace(/(<li>.*<\/li>)+/g, '<ul class="mb-0 mt-1">$&</ul>');
+        // Use marked.js for proper markdown rendering
+        if (typeof marked !== 'undefined') {
+            // Configure marked for safe rendering
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+            return marked.parse(text);
         }
 
+        // Fallback if marked.js not loaded
+        text = text.replace(/\n/g, '<br>');
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
         return text;
     }
 
@@ -419,6 +546,9 @@
             });
             conversationId = generateConversationId();
             pendingConfirmation = null;
+
+            // Clear saved conversation
+            localStorage.removeItem('ai_coach_conversation');
         }
     });
 

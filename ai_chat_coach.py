@@ -78,50 +78,64 @@ class AIChatCoach:
 
         message_lower = message.lower()
 
-        # Food logging patterns
+        # Meal suggestion patterns (CHECK FIRST - most specific)
+        suggestion_patterns = [
+            r'\b(give|show|suggest|recommend).*(meal|food|recipe|idea|example|option)',
+            r'\bmeal.*(ideas|suggestions|examples|options|plans)\b',
+            r'\bfood.*(ideas|suggestions|examples|options)\b',
+            r'\b(recipe|dish).*(ideas|suggestions|examples)\b',
+            r'\bwhat (should|can|could) i (eat|make|cook|have)\b',
+            r'\b(examples|ideas|suggestions|options).*(meal|food|dish|recipe|protein|dinner|lunch|breakfast)',
+            r'\b(high protein|low carb|healthy).*(meal|food|recipe|idea|example|option)',
+            r'\b(hungry|need to eat)\b',
+            r'\bcan you (give|provide|suggest).*(meal|food|recipe)',
+        ]
+
+        # Food logging patterns (past tense, specific actions)
         food_patterns = [
-            r'\b(ate|eat|eating|had|consumed|lunch|dinner|breakfast|meal|snack)\b',
-            r'\b(calories|protein|carbs|fat)\b.*\b(how many|how much)\b',
-            r'\bjust (ate|had)\b',
-            r'\b(log|track|add|record).*\b(food|meal)\b'
+            r'\b(ate|consumed|finished)\b',
+            r'\bjust (ate|had|finished)\b',
+            r'\bi (ate|had|consumed)\b',
+            r'\bI\'(m|ve) (eaten|had)\b',
+            r'\b(log|track|add|record).*(food|meal)\b'
         ]
 
         # Workout logging patterns
         workout_patterns = [
-            r'\b(workout|exercise|trained|gym|ran|run|lift|lifted)\b',
-            r'\b(jiu jitsu|boxing|swimming|cycling|yoga)\b',
-            r'\b(log|track|add|record).*\b(workout|exercise)\b',
+            r'\b(did|finished|completed).*(workout|exercise|training|gym|run)\b',
+            r'\bi (ran|lifted|trained|worked out|exercised)\b',
+            r'\bjust (did|finished).*(workout|exercise|run|gym)\b',
+            r'\b(log|track|add|record).*(workout|exercise)\b',
             r'\bdid\s+\d+\s+(minutes|min|hours|hr)\b'
-        ]
-
-        # Question patterns
-        question_patterns = [
-            r'\b(what|why|how|when|should|can|is|are)\b',
-            r'\?$'
-        ]
-
-        # Advice patterns
-        advice_patterns = [
-            r'\b(help|advice|suggest|recommend|tips)\b',
-            r'\bwhat should i\b',
-            r'\bhow can i\b'
         ]
 
         # Progress check patterns
         progress_patterns = [
-            r'\b(progress|status|summary|today|week|stats)\b',
+            r'\b(progress|status|summary|stats)\b.*\b(today|this week|so far)\b',
             r'\bhow (am i|did i) (do|doing)\b',
-            r'\b(remaining|left|still need)\b'
+            r'\b(remaining|left|still need)\b.*\b(today|calories|protein)\b',
+            r'\bshow.*(progress|stats|summary)\b'
         ]
 
-        # Meal suggestion patterns
-        suggestion_patterns = [
-            r'\bwhat (should|can) i eat\b',
-            r'\bmeal (ideas|suggestions)\b',
-            r'\b(hungry|need to eat)\b'
+        # Advice patterns
+        advice_patterns = [
+            r'\b(help|advice|tips)\b.*\b(lose weight|gain muscle|diet|nutrition)\b',
+            r'\bwhat should i do\b',
+            r'\bhow can i\b.*\b(improve|get better|lose|gain)\b'
         ]
 
-        # Check patterns in order of specificity
+        # Question patterns (general)
+        question_patterns = [
+            r'\b(what|why|when|is|are)\b.*\?$',
+            r'\bhow (does|do)\b.*\?$',
+            r'\?$'
+        ]
+
+        # Check patterns in order of specificity (SUGGESTIONS FIRST!)
+        for pattern in suggestion_patterns:
+            if re.search(pattern, message_lower):
+                return 'meal_suggestion'
+
         for pattern in food_patterns:
             if re.search(pattern, message_lower):
                 return 'log_food'
@@ -130,21 +144,17 @@ class AIChatCoach:
             if re.search(pattern, message_lower):
                 return 'log_workout'
 
-        for pattern in suggestion_patterns:
-            if re.search(pattern, message_lower):
-                return 'meal_suggestion'
-
         for pattern in progress_patterns:
             if re.search(pattern, message_lower):
                 return 'check_progress'
 
-        for pattern in question_patterns:
-            if re.search(pattern, message_lower):
-                return 'ask_nutrition'
-
         for pattern in advice_patterns:
             if re.search(pattern, message_lower):
                 return 'get_advice'
+
+        for pattern in question_patterns:
+            if re.search(pattern, message_lower):
+                return 'ask_nutrition'
 
         return 'general'
 
