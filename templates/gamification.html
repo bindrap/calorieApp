@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}Achievements & Progress - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-trophy-fill text-warning"></i> Achievements & Progress</h2>
+            <p class="text-muted">Track your fitness journey and unlock rewards</p>
+        </div>
+    </div>
+
+    <!-- Level & XP Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center mb-3 mb-md-0">
+                            <div class="level-badge">
+                                <div class="display-1 fw-bold" id="userLevel">1</div>
+                                <div class="fs-5" id="userTitle">Beginner</div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <h4 class="mb-2">Level Progress</h4>
+                            <div class="progress bg-white bg-opacity-25" style="height: 30px;">
+                                <div id="xpProgressBar" class="progress-bar bg-warning" role="progressbar" style="width: 0%">
+                                    <span id="xpProgress">0 / 100 XP</span>
+                                </div>
+                            </div>
+                            <div class="mt-2 d-flex justify-content-between">
+                                <span><i class="bi bi-star-fill"></i> Total XP: <strong id="totalXP">0</strong></span>
+                                <span><i class="bi bi-arrow-up-circle-fill"></i> XP to next level: <strong id="xpToNext">100</strong></span>
+                            </div>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div class="fs-1">🎯</div>
+                            <div class="mt-2"><strong id="achievementPoints">0</strong> Achievement Points</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Streaks -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-fire"></i> Food Logging Streak</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-3 text-danger mb-2" id="foodStreak">0</div>
+                    <p class="text-muted mb-2">Current Streak (days)</p>
+                    <div class="badge bg-danger-subtle text-danger mb-2" id="foodStreakMessage">Start logging to build your streak!</div>
+                    <hr>
+                    <small class="text-muted">Longest: <strong id="foodLongestStreak">0</strong> days</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge-fill"></i> Workout Streak</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-3 text-success mb-2" id="workoutStreak">0</div>
+                    <p class="text-muted mb-2">Current Streak (days)</p>
+                    <div class="badge bg-success-subtle text-success mb-2" id="workoutStreakMessage">Start working out to build your streak!</div>
+                    <hr>
+                    <small class="text-muted">Longest: <strong id="workoutLongestStreak">0</strong> days</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-bullseye"></i> Goal Hitting Streak</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-3 text-primary mb-2" id="goalStreak">0</div>
+                    <p class="text-muted mb-2">Current Streak (days)</p>
+                    <div class="badge bg-primary-subtle text-primary mb-2" id="goalStreakMessage">Hit your goals to build your streak!</div>
+                    <hr>
+                    <small class="text-muted">Longest: <strong id="goalLongestStreak">0</strong> days</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <i class="bi bi-journal-text fs-1 text-primary"></i>
+                    <h3 class="mt-2 mb-0" id="totalFoodLogs">0</h3>
+                    <p class="text-muted mb-0">Food Logs</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <i class="bi bi-heart-pulse fs-1 text-success"></i>
+                    <h3 class="mt-2 mb-0" id="totalWorkouts">0</h3>
+                    <p class="text-muted mb-0">Workouts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <i class="bi bi-calendar-check fs-1 text-info"></i>
+                    <h3 class="mt-2 mb-0" id="totalDaysActive">0</h3>
+                    <p class="text-muted mb-0">Days Active</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <i class="bi bi-trophy fs-1 text-warning"></i>
+                    <h3 class="mt-2 mb-0" id="unlockedAchievements">0</h3>
+                    <p class="text-muted mb-0">Achievements</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#unlocked" role="tab">
+                                <i class="bi bi-unlock-fill"></i> Unlocked (<span id="unlockedCount">0</span>)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#locked" role="tab">
+                                <i class="bi bi-lock-fill"></i> Locked (<span id="lockedCount">0</span>)
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#milestones" role="tab">
+                                <i class="bi bi-flag-fill"></i> Milestones
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#special" role="tab">
+                                <i class="bi bi-star-fill"></i> Special
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Unlocked Achievements -->
+                        <div class="tab-pane fade show active" id="unlocked" role="tabpanel">
+                            <div id="unlockedAchievementsList" class="row g-3">
+                                <div class="col-12 text-center py-5">
+                                    <div class="spinner-border text-primary"></div>
+                                    <p class="text-muted mt-2">Loading achievements...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Locked Achievements -->
+                        <div class="tab-pane fade" id="locked" role="tabpanel">
+                            <div id="lockedAchievementsList" class="row g-3">
+                                <div class="col-12 text-center py-5">
+                                    <p class="text-muted">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Milestones -->
+                        <div class="tab-pane fade" id="milestones" role="tabpanel">
+                            <div id="milestonesList" class="row g-3">
+                                <div class="col-12 text-center py-5">
+                                    <p class="text-muted">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Special -->
+                        <div class="tab-pane fade" id="special" role="tabpanel">
+                            <div id="specialList" class="row g-3">
+                                <div class="col-12 text-center py-5">
+                                    <p class="text-muted">Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .level-badge {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+
+    .achievement-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .achievement-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .achievement-icon {
+        font-size: 3rem;
+        margin-bottom: 10px;
+    }
+
+    .achievement-locked {
+        filter: grayscale(100%);
+        opacity: 0.5;
+    }
+
+    .achievement-unlocked {
+        animation: achievementUnlock 0.6s ease-out;
+    }
+
+    @keyframes achievementUnlock {
+        0% {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1.1);
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .progress-ring {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto;
+    }
+</style>
+
+<script>
+    // Load gamification data
+    async function loadGamificationData() {
+        try {
+            const response = await fetch('/api/gamification/stats');
+            const data = await response.json();
+
+            // Update level and XP
+            document.getElementById('userLevel').textContent = data.level.current_level;
+            document.getElementById('userTitle').textContent = data.level.current_title;
+            document.getElementById('totalXP').textContent = data.level.total_xp_earned.toLocaleString();
+            document.getElementById('xpToNext').textContent = (data.level.xp_for_next_level - data.level.current_xp).toLocaleString();
+            document.getElementById('achievementPoints').textContent = data.level.achievement_points.toLocaleString();
+
+            // Update XP progress bar
+            const xpPercent = (data.level.current_xp / data.level.xp_for_next_level) * 100;
+            document.getElementById('xpProgressBar').style.width = xpPercent + '%';
+            document.getElementById('xpProgress').textContent = `${data.level.current_xp} / ${data.level.xp_for_next_level} XP`;
+
+            // Update streaks
+            updateStreak('food', data.streaks.food_logging);
+            updateStreak('workout', data.streaks.workout);
+            updateStreak('goal', data.streaks.goal_hitting);
+
+            // Update stats
+            document.getElementById('totalFoodLogs').textContent = data.level.total_food_logs.toLocaleString();
+            document.getElementById('totalWorkouts').textContent = data.level.total_workouts.toLocaleString();
+            document.getElementById('totalDaysActive').textContent = data.level.total_days_active.toLocaleString();
+
+            // Update achievements
+            renderAchievements(data.achievements);
+
+        } catch (error) {
+            console.error('Error loading gamification data:', error);
+        }
+    }
+
+    // Update streak display
+    function updateStreak(type, streak) {
+        if (!streak) return;
+
+        document.getElementById(`${type}Streak`).textContent = streak.current_streak_days;
+        document.getElementById(`${type}LongestStreak`).textContent = streak.longest_streak_days;
+
+        const message = getStreakMessage(streak.current_streak_days);
+        document.getElementById(`${type}StreakMessage`).textContent = message;
+    }
+
+    // Get streak message
+    function getStreakMessage(days) {
+        if (days === 0) return 'Start your streak today!';
+        if (days < 7) return `🔥 ${days} ${days === 1 ? 'day' : 'days'}! Keep going!`;
+        if (days < 30) return `⭐ ${days} days! You're on fire!`;
+        if (days < 100) return `🏆 ${days} days! Amazing consistency!`;
+        return `👑 ${days} days! You're a legend!`;
+    }
+
+    // Render achievements
+    function renderAchievements(achievements) {
+        const unlocked = achievements.filter(a => a.unlocked);
+        const locked = achievements.filter(a => !a.unlocked);
+        const milestones = achievements.filter(a => a.category === 'milestone');
+        const special = achievements.filter(a => a.category === 'special');
+
+        document.getElementById('unlockedCount').textContent = unlocked.length;
+        document.getElementById('lockedCount').textContent = locked.length;
+        document.getElementById('unlockedAchievements').textContent = unlocked.length;
+
+        renderAchievementList('unlockedAchievementsList', unlocked, false);
+        renderAchievementList('lockedAchievementsList', locked, true);
+        renderAchievementList('milestonesList', milestones.filter(a => a.unlocked), false);
+        renderAchievementList('specialList', special.filter(a => a.unlocked), false);
+    }
+
+    // Render achievement list
+    function renderAchievementList(containerId, achievements, isLocked) {
+        const container = document.getElementById(containerId);
+
+        if (achievements.length === 0) {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-2">${isLocked ? 'All achievements unlocked!' : 'No achievements yet. Keep going!'}</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        achievements.forEach(achievement => {
+            const progress = achievement.progress || 0;
+            const target = achievement.criteria_value || 100;
+            const progressPercent = Math.min((progress / target) * 100, 100);
+
+            html += `
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="card shadow-sm achievement-card ${isLocked ? 'achievement-locked' : 'achievement-unlocked'}">
+                        <div class="card-body text-center">
+                            <div class="achievement-icon">${achievement.icon}</div>
+                            <h6 class="mb-1">${achievement.name}</h6>
+                            <p class="text-muted small mb-2">${achievement.description}</p>
+
+                            ${isLocked ? `
+                                <div class="progress mb-2" style="height: 8px;">
+                                    <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                                </div>
+                                <small class="text-muted">${progress} / ${target}</small>
+                            ` : `
+                                <span class="badge bg-success">✓ Unlocked</span>
+                                ${achievement.unlocked_at ? `<div class="text-muted small mt-1">${new Date(achievement.unlocked_at).toLocaleDateString()}</div>` : ''}
+                            `}
+
+                            <div class="mt-2">
+                                <span class="badge bg-warning text-dark">${achievement.points} points</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Load data on page load
+    loadGamificationData();
+
+    // Refresh every 30 seconds
+    setInterval(loadGamificationData, 30000);
+</script>
+{% endblock %}
