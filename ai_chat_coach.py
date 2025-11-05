@@ -18,8 +18,9 @@ class AIChatCoach:
     """
 
     def __init__(self):
-        self.api_url = os.environ.get('OLLAMA_API_URL', 'https://api.ollamacloud.ai/v1/chat/completions')
-        self.api_key = os.environ.get('OLLAMA_API_KEY', '')
+        # Use correct Ollama API endpoint
+        self.base_url = os.environ.get('OLLAMA_BASE_URL', 'https://ollama.com')
+        self.api_key = os.environ.get('OLLAMA_API_KEY', 'fe0c789532b44e988904c67a8bae43bd.s4tncu8N0QrXikNECVubiWGg')
         self.model = os.environ.get('OLLAMA_MODEL', 'gpt-oss:120b')
 
         # Conversation history (in production, load from database)
@@ -480,16 +481,22 @@ Keep it conversational and encouraging.
                     'content': prompt
                 }
             ],
-            'max_tokens': 1000,
-            'temperature': 0.7
+            'stream': False
         }
 
         try:
-            response = requests.post(self.api_url, headers=headers, json=payload, timeout=20)
+            # Use correct Ollama API endpoint
+            response = requests.post(
+                f"{self.base_url}/api/chat",
+                headers=headers,
+                json=payload,
+                timeout=20
+            )
             response.raise_for_status()
 
             result = response.json()
-            content = result['choices'][0]['message']['content']
+            # Ollama uses 'message' not 'choices'
+            content = result.get('message', {}).get('content', '')
 
             return content
 
