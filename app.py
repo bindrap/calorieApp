@@ -1180,7 +1180,7 @@ def upload_food():
 @login_required
 def edit_entry(entry_id):
     """Edit a food entry"""
-    entry = FoodEntry.query.get_or_404(entry_id)
+    entry = db.get_or_404(FoodEntry,entry_id)
 
     # Ensure user owns this entry
     if entry.user_id != current_user.id:
@@ -1234,7 +1234,7 @@ def edit_entry(entry_id):
 @login_required
 def delete_entry(entry_id):
     """Delete a food entry"""
-    entry = FoodEntry.query.get_or_404(entry_id)
+    entry = db.get_or_404(FoodEntry,entry_id)
 
     # Ensure user owns this entry
     if entry.user_id != current_user.id:
@@ -1311,7 +1311,7 @@ def log_workout():
 @login_required
 def edit_workout(workout_id):
     """Edit a workout entry"""
-    workout = WorkoutEntry.query.get_or_404(workout_id)
+    workout = db.get_or_404(WorkoutEntry,workout_id)
 
     # Ensure user owns this workout
     if workout.user_id != current_user.id:
@@ -1531,7 +1531,7 @@ def settings():
 @login_required
 def api_analysis_log(food_entry_id):
     """API endpoint to get detailed analysis log for a food entry"""
-    food_entry = FoodEntry.query.get_or_404(food_entry_id)
+    food_entry = db.get_or_404(FoodEntry,food_entry_id)
 
     # Ensure user owns this entry
     if food_entry.user_id != current_user.id:
@@ -1565,7 +1565,7 @@ def api_analysis_log(food_entry_id):
 @login_required
 def delete_food_entry(food_id):
     """API endpoint to delete a food entry"""
-    food_entry = FoodEntry.query.get_or_404(food_id)
+    food_entry = db.get_or_404(FoodEntry, food_id)
 
     # Ensure user owns this entry
     if food_entry.user_id != current_user.id:
@@ -1590,7 +1590,7 @@ def delete_food_entry(food_id):
 @login_required
 def delete_workout_entry(workout_id):
     """API endpoint to delete a workout entry"""
-    workout = WorkoutEntry.query.get_or_404(workout_id)
+    workout = db.get_or_404(WorkoutEntry,workout_id)
 
     # Ensure user owns this workout
     if workout.user_id != current_user.id:
@@ -1648,7 +1648,7 @@ def manifest():
 
 def get_user_context(user_id):
     """Get user's current context for AI coach"""
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     settings = UserSettings.query.filter_by(user_id=user_id).first()
 
     if not settings:
@@ -1662,7 +1662,7 @@ def get_user_context(user_id):
     today = date.today()
     food_entries = FoodEntry.query.filter(
         FoodEntry.user_id == user_id,
-        func.date(FoodEntry.consumed_at) == today
+        db.func.date(FoodEntry.consumed_at) == today
     ).all()
 
     # Calculate consumed
@@ -1676,7 +1676,7 @@ def get_user_context(user_id):
     # Get workouts
     workout_entries = WorkoutEntry.query.filter(
         WorkoutEntry.user_id == user_id,
-        func.date(WorkoutEntry.logged_at) == today
+        db.func.date(WorkoutEntry.logged_at) == today
     ).all()
 
     calories_burned = sum(float(entry.calories_burned or 0) for entry in workout_entries)
@@ -1916,8 +1916,8 @@ def health_timeline_api():
         if filters.get('food', True):
             for entry in FoodEntry.query.filter(
                 FoodEntry.user_id == current_user.id,
-                func.date(FoodEntry.consumed_at) >= start_date,
-                func.date(FoodEntry.consumed_at) <= end_date
+                db.func.date(FoodEntry.consumed_at) >= start_date,
+                db.func.date(FoodEntry.consumed_at) <= end_date
             ).all():
                 events.append({
                     'event_type': 'food', 'title': entry.food_name,
@@ -1931,8 +1931,8 @@ def health_timeline_api():
         if filters.get('workout', True):
             for entry in WorkoutEntry.query.filter(
                 WorkoutEntry.user_id == current_user.id,
-                func.date(WorkoutEntry.logged_at) >= start_date,
-                func.date(WorkoutEntry.logged_at) <= end_date
+                db.func.date(WorkoutEntry.logged_at) >= start_date,
+                db.func.date(WorkoutEntry.logged_at) <= end_date
             ).all():
                 events.append({
                     'event_type': 'workout', 'title': entry.activity_type,
