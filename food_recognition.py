@@ -12,22 +12,16 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from PIL import Image
 import io
+import ollama
 
 # Configuration
 OLLAMA_MODEL = "gpt-oss:120b-cloud"
-API_KEY = "fe0c789532b44e988904c67a8bae43bd.s4tncu8N0QrXikNECVubiWGg"
-
-# Set API key BEFORE importing ollama
-os.environ['OLLAMA_API_KEY'] = os.environ.get('OLLAMA_API_KEY', API_KEY)
-
-import ollama
 
 class FoodRecognizer:
     """Handles food recognition using intelligent analysis"""
 
     def __init__(self, model: str = OLLAMA_MODEL, api_key: Optional[str] = None):
         self.model = model
-        # API key already set in environment variable
 
     def analyze_image(self, image_path: str, user_description: Optional[str] = None) -> Dict:
         """

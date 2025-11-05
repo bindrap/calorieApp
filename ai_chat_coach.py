@@ -9,10 +9,6 @@ import json
 import re
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
-
-# Set API key BEFORE importing ollama
-os.environ['OLLAMA_API_KEY'] = os.environ.get('OLLAMA_API_KEY', 'fe0c789532b44e988904c67a8bae43bd.s4tncu8N0QrXikNECVubiWGg')
-
 import ollama
 
 
