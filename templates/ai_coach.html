@@ -8,30 +8,65 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <!-- Chat Interface -->
-        <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm h-100">
+<div class="container-fluid mt-4 px-0">
+    <div class="row g-0">
+        <!-- Left Sidebar: Conversations List -->
+        <div class="col-lg-2 col-md-3 d-none d-md-block bg-dark" style="height: calc(100vh - 80px); overflow-y: auto;">
+            <div class="p-3">
+                <!-- New Chat Button -->
+                <button class="btn btn-primary w-100 mb-3" id="newChatBtnSidebar">
+                    <i class="bi bi-plus-circle"></i> New Chat
+                </button>
+
+                <!-- Conversations List -->
+                <div id="conversationsList">
+                    <h6 class="text-light mb-3"><i class="bi bi-clock-history"></i> Recent Conversations</h6>
+                    <div id="conversationsListItems">
+                        <!-- Conversations will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="btn btn-primary d-md-none position-fixed" id="mobileSidebarToggle" style="bottom: 20px; left: 20px; z-index: 1000; border-radius: 50%; width: 50px; height: 50px;">
+            <i class="bi bi-list fs-4"></i>
+        </button>
+
+        <!-- Mobile Sidebar Overlay -->
+        <div class="d-md-none position-fixed top-0 start-0 w-100 h-100 bg-dark" id="mobileSidebar" style="z-index: 999; transform: translateX(-100%); transition: transform 0.3s;">
+            <div class="p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-light mb-0">Conversations</h5>
+                    <button class="btn btn-sm btn-light" id="closeMobileSidebar">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <button class="btn btn-primary w-100 mb-3" id="newChatBtnMobile">
+                    <i class="bi bi-plus-circle"></i> New Chat
+                </button>
+                <div id="conversationsListMobile">
+                    <!-- Mobile conversations list -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="col-lg-7 col-md-9 col-12">
+            <div class="card shadow-sm h-100 border-0 rounded-0">
                 <div class="card-header bg-primary text-white d-flex align-items-center">
                     <i class="bi bi-robot me-2 fs-4"></i>
-                    <h5 class="mb-0">AI Coach Chat</h5>
+                    <h5 class="mb-0" id="currentChatTitle">AI Coach</h5>
                     <div class="ms-auto d-flex gap-2">
-                        <button class="btn btn-sm btn-light" id="saveConversationBtn" title="Save conversation">
-                            <i class="bi bi-save"></i> Save
+                        <button class="btn btn-sm btn-light" id="saveChatBtn" title="Save conversation">
+                            <i class="bi bi-save"></i>
                         </button>
-                        <button class="btn btn-sm btn-light" id="loadConversationBtn" title="Load conversation">
-                            <i class="bi bi-folder-open"></i> Load
-                        </button>
-                        <button class="btn btn-sm btn-light" id="newChatBtn" title="New conversation">
-                            <i class="bi bi-plus-circle"></i> New
-                        </button>
-                        <button class="btn btn-sm btn-light" id="clearChatBtn" title="Clear current">
-                            <i class="bi bi-trash"></i> Clear
+                        <button class="btn btn-sm btn-outline-light" id="clearChatBtn" title="Clear current">
+                            <i class="bi bi-trash"></i>
                         </button>
                     </div>
                 </div>
-                <div class="card-body d-flex flex-column p-0" style="height: 600px;">
+                <div class="card-body d-flex flex-column p-0" style="height: calc(100vh - 200px);">
                     <!-- Chat Messages Area -->
                     <div id="chatMessages" class="flex-grow-1 p-3 overflow-auto bg-light">
                         <!-- Welcome Message -->
@@ -68,7 +103,7 @@
                                 required
                             >
                             <button type="submit" class="btn btn-primary" id="sendBtn">
-                                <i class="bi bi-send"></i> Send
+                                <i class="bi bi-send"></i>
                             </button>
                             <button type="button" class="btn btn-outline-secondary" id="voiceBtn" title="Voice input">
                                 <i class="bi bi-mic"></i>
@@ -77,7 +112,7 @@
 
                         <!-- Quick Actions -->
                         <div class="mt-2">
-                            <small class="text-muted me-2">Quick actions:</small>
+                            <small class="text-muted me-2">Quick:</small>
                             <button class="btn btn-sm btn-outline-primary quick-action me-1 mb-1" data-message="How am I doing today?">
                                 📊 Progress
                             </button>
@@ -86,9 +121,6 @@
                             </button>
                             <button class="btn btn-sm btn-outline-primary quick-action me-1 mb-1" data-message="I just had lunch">
                                 🍔 Log Food
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary quick-action me-1 mb-1" data-message="Did a workout">
-                                💪 Log Workout
                             </button>
                         </div>
                     </div>
@@ -209,6 +241,82 @@
         margin-top: 10px;
     }
 
+    /* Sidebar conversation list styling */
+    .conversation-item {
+        background: #2d3748;
+        border: none;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        width: 100%;
+        color: #e2e8f0;
+        position: relative;
+    }
+
+    .conversation-item:hover {
+        background: #4a5568;
+        transform: translateX(4px);
+    }
+
+    .conversation-item.active {
+        background: #4299e1;
+        color: white;
+    }
+
+    .conversation-item .conversation-title {
+        font-weight: 500;
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .conversation-item .conversation-date {
+        font-size: 0.75rem;
+        opacity: 0.7;
+    }
+
+    .conversation-item .delete-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: white;
+    }
+
+    .conversation-item:hover .delete-btn {
+        opacity: 1;
+    }
+
+    .conversation-item .delete-btn:hover {
+        background: #f56565;
+    }
+
+    #conversationsList::-webkit-scrollbar,
+    #conversationsListMobile::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #conversationsList::-webkit-scrollbar-track,
+    #conversationsListMobile::-webkit-scrollbar-track {
+        background: #1a202c;
+    }
+
+    #conversationsList::-webkit-scrollbar-thumb,
+    #conversationsListMobile::-webkit-scrollbar-thumb {
+        background: #4a5568;
+        border-radius: 3px;
+    }
+
     /* Markdown styling for AI responses */
     .message-text table {
         width: 100%;
@@ -292,9 +400,15 @@
     const sendBtn = document.getElementById('sendBtn');
     const voiceBtn = document.getElementById('voiceBtn');
     const clearChatBtn = document.getElementById('clearChatBtn');
-    const saveConversationBtn = document.getElementById('saveConversationBtn');
-    const loadConversationBtn = document.getElementById('loadConversationBtn');
-    const newChatBtn = document.getElementById('newChatBtn');
+    const saveChatBtn = document.getElementById('saveChatBtn');
+    const newChatBtnSidebar = document.getElementById('newChatBtnSidebar');
+    const newChatBtnMobile = document.getElementById('newChatBtnMobile');
+    const conversationsListItems = document.getElementById('conversationsListItems');
+    const conversationsListMobile = document.getElementById('conversationsListMobile');
+    const currentChatTitle = document.getElementById('currentChatTitle');
+    const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+    const mobileSidebar = document.getElementById('mobileSidebar');
+    const closeMobileSidebar = document.getElementById('closeMobileSidebar');
     const quickActions = document.querySelectorAll('.quick-action');
 
     // Conversation ID for tracking
@@ -561,12 +675,84 @@
         });
     });
 
-    // Save conversation with name
-    saveConversationBtn.addEventListener('click', () => {
+    // Load conversations list into sidebar
+    function loadConversationsList() {
+        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
+
+        // Sort by timestamp descending (most recent first)
+        savedConversations.sort((a, b) => b.timestamp - a.timestamp);
+
+        // Render desktop list
+        conversationsListItems.innerHTML = savedConversations.length === 0
+            ? '<p class="text-muted small">No saved conversations yet</p>'
+            : savedConversations.map((conv, index) => `
+                <button class="conversation-item ${conv.id === conversationId ? 'active' : ''}" data-conv-id="${conv.id}" data-conv-index="${index}">
+                    <div class="conversation-title">${conv.name || 'Unnamed Chat'}</div>
+                    <div class="conversation-date">${new Date(conv.timestamp).toLocaleDateString()}</div>
+                    <button class="delete-btn" data-conv-index="${index}" onclick="deleteConversation(${index}); event.stopPropagation();">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </button>
+            `).join('');
+
+        // Render mobile list
+        conversationsListMobile.innerHTML = conversationsListItems.innerHTML;
+
+        // Add click handlers
+        document.querySelectorAll('.conversation-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const index = parseInt(btn.dataset.convIndex);
+                loadConversationByIndex(index);
+            });
+        });
+    }
+
+    // Load specific conversation
+    function loadConversationByIndex(index) {
+        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
+        const conversation = savedConversations[index];
+
+        if (!conversation) return;
+
+        // Clear current messages (except welcome)
+        const messages = chatMessages.querySelectorAll('.message');
+        messages.forEach((msg, i) => {
+            if (i > 0) msg.remove();
+        });
+
+        // Load messages
+        conversation.messages.forEach(msg => {
+            addMessage(msg.content, msg.role, msg.data);
+        });
+
+        conversationId = conversation.id;
+        currentChatTitle.textContent = conversation.name || 'AI Coach';
+
+        // Update active state
+        loadConversationsList();
+
+        // Close mobile sidebar
+        if (mobileSidebar) {
+            mobileSidebar.style.transform = 'translateX(-100%)';
+        }
+    }
+
+    // Delete conversation
+    window.deleteConversation = function(index) {
+        if (!confirm('Delete this conversation?')) return;
+
+        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
+        savedConversations.splice(index, 1);
+        localStorage.setItem('ai_coach_saved_conversations', JSON.stringify(savedConversations));
+
+        loadConversationsList();
+    };
+
+    // Save current conversation
+    saveChatBtn.addEventListener('click', () => {
         const name = prompt('Enter a name for this conversation:');
         if (!name) return;
 
-        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
         const conversationData = JSON.parse(localStorage.getItem('ai_coach_conversation'));
 
         if (!conversationData || !conversationData.messages || conversationData.messages.length === 0) {
@@ -574,11 +760,13 @@
             return;
         }
 
-        // Add or update conversation
+        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
+
+        // Check if conversation with same name exists
         const existing = savedConversations.findIndex(c => c.name === name);
         const newConv = {
             name: name,
-            id: conversationData.id,
+            id: conversationId,
             messages: conversationData.messages,
             timestamp: Date.now()
         };
@@ -594,64 +782,37 @@
         }
 
         localStorage.setItem('ai_coach_saved_conversations', JSON.stringify(savedConversations));
-        alert(`Conversation "${name}" saved!`);
+        currentChatTitle.textContent = name;
+        loadConversationsList();
     });
 
-    // Load conversation
-    loadConversationBtn.addEventListener('click', () => {
-        const savedConversations = JSON.parse(localStorage.getItem('ai_coach_saved_conversations') || '[]');
-
-        if (savedConversations.length === 0) {
-            alert('No saved conversations found!');
-            return;
-        }
-
-        // Create selection dialog
-        const names = savedConversations.map((c, i) => `${i + 1}. ${c.name} (${new Date(c.timestamp).toLocaleDateString()})`).join('\n');
-        const selection = prompt(`Select a conversation to load:\n\n${names}\n\nEnter the number:`);
-
-        if (!selection) return;
-
-        const index = parseInt(selection) - 1;
-        if (index < 0 || index >= savedConversations.length) {
-            alert('Invalid selection!');
-            return;
-        }
-
-        const conversation = savedConversations[index];
-
-        // Clear current messages (except welcome)
+    // New conversation (sidebar button)
+    function startNewConversation() {
+        // Clear messages
         const messages = chatMessages.querySelectorAll('.message');
-        messages.forEach((msg, i) => {
-            if (i > 0) msg.remove();
+        messages.forEach((msg, index) => {
+            if (index > 0) msg.remove();
         });
 
-        // Load messages
-        conversation.messages.forEach(msg => {
-            addMessage(msg.content, msg.role, msg.data);
-        });
+        // Create new conversation ID
+        conversationId = generateConversationId();
+        pendingConfirmation = null;
+        currentChatTitle.textContent = 'AI Coach';
 
-        conversationId = conversation.id;
-        alert(`Loaded conversation "${conversation.name}"!`);
-    });
+        // Clear auto-save
+        localStorage.removeItem('ai_coach_conversation');
 
-    // New conversation
-    newChatBtn.addEventListener('click', () => {
-        if (confirm('Start a new conversation? Current conversation will be auto-saved.')) {
-            // Clear messages
-            const messages = chatMessages.querySelectorAll('.message');
-            messages.forEach((msg, index) => {
-                if (index > 0) msg.remove();
-            });
+        // Update sidebar
+        loadConversationsList();
 
-            // Create new conversation ID
-            conversationId = generateConversationId();
-            pendingConfirmation = null;
-
-            // Clear auto-save
-            localStorage.removeItem('ai_coach_conversation');
+        // Close mobile sidebar
+        if (mobileSidebar) {
+            mobileSidebar.style.transform = 'translateX(-100%)';
         }
-    });
+    }
+
+    newChatBtnSidebar.addEventListener('click', startNewConversation);
+    newChatBtnMobile.addEventListener('click', startNewConversation);
 
     // Clear chat
     clearChatBtn.addEventListener('click', () => {
@@ -767,7 +928,31 @@
         }
     }
 
-    // Load stats on page load
+    // Mobile sidebar toggle
+    mobileSidebarToggle.addEventListener('click', () => {
+        mobileSidebar.style.transform = 'translateX(0)';
+    });
+
+    closeMobileSidebar.addEventListener('click', () => {
+        mobileSidebar.style.transform = 'translateX(-100%)';
+    });
+
+    // Close mobile sidebar when clicking outside
+    mobileSidebar.addEventListener('click', (e) => {
+        if (e.target === mobileSidebar) {
+            mobileSidebar.style.transform = 'translateX(-100%)';
+        }
+    });
+
+    // Load stats and conversations list on page load
     loadTodayStats();
+    loadConversationsList();
+
+    // Update conversation list after saving
+    const originalSaveConversation = saveConversation;
+    saveConversation = function() {
+        originalSaveConversation();
+        loadConversationsList();
+    };
 </script>
 {% endblock %}
