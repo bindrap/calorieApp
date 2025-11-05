@@ -8,7 +8,7 @@ import sqlite3
 import os
 from datetime import datetime
 
-DATABASE_PATH = os.environ.get('DATABASE_PATH', 'calorie_tracker.db')
+DATABASE_PATH = os.environ.get('DATABASE_PATH', 'instance/calorie_tracker.db')
 
 def migrate_database():
     """Add all new columns and tables"""

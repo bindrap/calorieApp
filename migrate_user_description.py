@@ -10,7 +10,7 @@ import sys
 def migrate_database():
     """Add missing columns to food_entries table"""
 
-    db_path = 'instance/calorie_tracker.db'
+    db_path = os.environ.get('DATABASE_PATH', 'instance/calorie_tracker.db')
 
     if not os.path.exists(db_path):
         print(f"❌ Database not found at {db_path}")
