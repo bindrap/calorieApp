@@ -53,6 +53,13 @@ ACTIVITY_DATABASE = {
     },
 
     # SWIMMING (MET: 6.0-11.0)
+    "Swimming": {
+        "light": {"met": 5.0, "description": "Slow pace, recreational"},
+        "moderate": {"met": 7.0, "description": "Moderate pace, general"},
+        "high": {"met": 10.0, "description": "Fast pace, vigorous"},
+        "tracks": ["laps", "distance", "duration"],
+        "icon": "🏊"
+    },
     "Swimming - Freestyle": {
         "light": {"met": 5.8, "description": "Slow pace, recreational"},
         "moderate": {"met": 9.8, "description": "Moderate pace, laps"},
@@ -91,6 +98,13 @@ ACTIVITY_DATABASE = {
 
     # MARTIAL ARTS & COMBAT (MET: 6.0-12.0)
     "Jiu Jitsu": {
+        "light": {"met": 6.0, "description": "Drilling techniques"},
+        "moderate": {"met": 8.0, "description": "Light rolling"},
+        "high": {"met": 10.3, "description": "Competition rolling"},
+        "tracks": ["rounds", "duration"],
+        "icon": "🥋"
+    },
+    "Jiu-Jitsu": {
         "light": {"met": 6.0, "description": "Drilling techniques"},
         "moderate": {"met": 8.0, "description": "Light rolling"},
         "high": {"met": 10.3, "description": "Competition rolling"},
@@ -150,7 +164,14 @@ ACTIVITY_DATABASE = {
     # STRENGTH TRAINING (MET: 3.0-6.0)
     "Weight Training": {
         "light": {"met": 3.5, "description": "Light weights, many reps"},
-        "moderate": {"met": 5.0, "description": "Moderate weights"},
+        "moderate": {"met": 4.5, "description": "Moderate weights"},
+        "high": {"met": 6.0, "description": "Heavy weights, compound lifts"},
+        "tracks": ["exercises", "sets", "reps", "weight"],
+        "icon": "🏋️"
+    },
+    "Weightlifting": {
+        "light": {"met": 3.5, "description": "Light weights, many reps"},
+        "moderate": {"met": 4.5, "description": "Moderate weights"},
         "high": {"met": 6.0, "description": "Heavy weights, compound lifts"},
         "tracks": ["exercises", "sets", "reps", "weight"],
         "icon": "🏋️"
