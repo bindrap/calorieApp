@@ -45,12 +45,13 @@ class CalorieCalculator:
         # Local food database for fallback
         self.local_food_db = self._load_local_food_database()
 
-    def calculate_calories(self, recognition_result: Dict) -> Dict:
+    def calculate_calories(self, recognition_result: Dict, user_description: Optional[str] = None) -> Dict:
         """
         Calculate calories and nutrition info based on food recognition with hyper-accuracy
 
         Args:
             recognition_result: Output from FoodRecognizer.analyze_image()
+            user_description: Optional user-provided description for enhanced matching
 
         Returns:
             Dict with calorie and nutrition information
@@ -60,7 +61,10 @@ class CalorieCalculator:
             estimated_weight = recognition_result.get('estimated_weight', 100)
             all_foods = recognition_result.get('all_foods', [food_name])
 
-            print(f"🧮 Calculating calories for: {food_name} ({estimated_weight}g)")
+            if user_description:
+                print(f"🧮 Calculating calories for: {food_name} ({estimated_weight}g) with user context")
+            else:
+                print(f"🧮 Calculating calories for: {food_name} ({estimated_weight}g)")
 
             # Step 1: Try enhanced database first (for branded/fast food items)
             if get_enhanced_nutrition_data and calculate_accurate_calories:

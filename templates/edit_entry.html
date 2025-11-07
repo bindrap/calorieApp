@@ -66,6 +66,17 @@
                                 </div>
                             </div>
 
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    <i class="bi bi-chat-text me-1"></i>Food Description
+                                </label>
+                                <textarea class="form-control" id="description" name="description" rows="2"
+                                          placeholder="Add or edit description for better accuracy...">{{ entry.user_description or '' }}</textarea>
+                                <div class="form-text">
+                                    Include brand names, portions, cooking method, etc.
+                                </div>
+                            </div>
+
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
@@ -350,6 +361,13 @@ function showAnalysisDebug() {
                             <tr><td><strong>Carbs:</strong></td><td>${data.carbs}g</td></tr>
                             <tr><td><strong>Fat:</strong></td><td>${data.fat}g</td></tr>
                         </table>
+
+                        ${data.user_description ? `
+                        <h6><i class="bi bi-chat-text me-2"></i>User Description</h6>
+                        <div class="bg-light p-2 rounded mb-3">
+                            <em>"${data.user_description}"</em>
+                        </div>
+                        ` : ''}
 
                         <h6><i class="bi bi-clock me-2"></i>Processing Info</h6>
                         <table class="table table-sm">

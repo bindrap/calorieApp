@@ -1,0 +1,461 @@
+{% extends "base.html" %}
+
+{% block title %}Mood & Energy Tracker - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-emoji-smile-fill text-warning"></i> Mood & Energy Tracker</h2>
+            <p class="text-muted">Track your emotional and physical well-being</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Mood Entry Form -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Log Mood & Energy</h5>
+                </div>
+                <div class="card-body">
+                    <form id="moodForm">
+                        <!-- Mood Score -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-emoji-smile"></i> How are you feeling?
+                            </label>
+                            <div class="mood-selector">
+                                <div class="row g-2 text-center">
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood1" value="1">
+                                        <label class="btn btn-outline-danger w-100" for="mood1" title="Terrible">
+                                            <div class="fs-2">😫</div>
+                                            <small>1</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood2" value="2">
+                                        <label class="btn btn-outline-danger w-100" for="mood2" title="Bad">
+                                            <div class="fs-2">😞</div>
+                                            <small>2</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood3" value="3">
+                                        <label class="btn btn-outline-warning w-100" for="mood3" title="Poor">
+                                            <div class="fs-2">😕</div>
+                                            <small>3</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood4" value="4">
+                                        <label class="btn btn-outline-warning w-100" for="mood4" title="Not great">
+                                            <div class="fs-2">😐</div>
+                                            <small>4</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood5" value="5" checked>
+                                        <label class="btn btn-outline-secondary w-100" for="mood5" title="Okay">
+                                            <div class="fs-2">😊</div>
+                                            <small>5</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood6" value="6">
+                                        <label class="btn btn-outline-info w-100" for="mood6" title="Good">
+                                            <div class="fs-2">🙂</div>
+                                            <small>6</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood7" value="7">
+                                        <label class="btn btn-outline-info w-100" for="mood7" title="Very good">
+                                            <div class="fs-2">😃</div>
+                                            <small>7</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood8" value="8">
+                                        <label class="btn btn-outline-success w-100" for="mood8" title="Great">
+                                            <div class="fs-2">😄</div>
+                                            <small>8</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood9" value="9">
+                                        <label class="btn btn-outline-success w-100" for="mood9" title="Excellent">
+                                            <div class="fs-2">😁</div>
+                                            <small>9</small>
+                                        </label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="radio" class="btn-check" name="mood_score" id="mood10" value="10">
+                                        <label class="btn btn-outline-success w-100" for="mood10" title="Amazing">
+                                            <div class="fs-2">🤩</div>
+                                            <small>10</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Energy Level -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-lightning-charge-fill text-warning"></i> Energy Level
+                            </label>
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">Exhausted</span>
+                                <input type="range" class="form-range flex-grow-1" id="energy_level" name="energy_level" min="1" max="10" value="5" step="1">
+                                <span class="ms-2">Energized</span>
+                            </div>
+                            <div class="text-center mt-2">
+                                <span class="badge bg-warning fs-5" id="energyValue">5</span>
+                            </div>
+                        </div>
+
+                        <!-- Stress Level -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-thermometer-half text-danger"></i> Stress Level
+                            </label>
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">Calm</span>
+                                <input type="range" class="form-range flex-grow-1" id="stress_level" name="stress_level" min="1" max="10" value="5" step="1">
+                                <span class="ms-2">Very Stressed</span>
+                            </div>
+                            <div class="text-center mt-2">
+                                <span class="badge bg-danger fs-5" id="stressValue">5</span>
+                            </div>
+                        </div>
+
+                        <!-- Motivation -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-rocket-takeoff text-primary"></i> Motivation
+                            </label>
+                            <div class="d-flex align-items-center">
+                                <span class="me-2">Unmotivated</span>
+                                <input type="range" class="form-range flex-grow-1" id="motivation" name="motivation" min="1" max="10" value="5" step="1">
+                                <span class="ms-2">Highly Motivated</span>
+                            </div>
+                            <div class="text-center mt-2">
+                                <span class="badge bg-primary fs-5" id="motivationValue">5</span>
+                            </div>
+                        </div>
+
+                        <!-- Emotions -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-heart"></i> How are you feeling? (Select all that apply)
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_happy" value="happy">
+                                    <label class="btn btn-outline-success w-100" for="emotion_happy">😊 Happy</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_anxious" value="anxious">
+                                    <label class="btn btn-outline-warning w-100" for="emotion_anxious">😰 Anxious</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_focused" value="focused">
+                                    <label class="btn btn-outline-primary w-100" for="emotion_focused">🎯 Focused</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_tired" value="tired">
+                                    <label class="btn btn-outline-secondary w-100" for="emotion_tired">😴 Tired</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_excited" value="excited">
+                                    <label class="btn btn-outline-info w-100" for="emotion_excited">🎉 Excited</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_sad" value="sad">
+                                    <label class="btn btn-outline-danger w-100" for="emotion_sad">😢 Sad</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_calm" value="calm">
+                                    <label class="btn btn-outline-success w-100" for="emotion_calm">😌 Calm</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_angry" value="angry">
+                                    <label class="btn btn-outline-danger w-100" for="emotion_angry">😠 Angry</label>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <input type="checkbox" class="btn-check" id="emotion_grateful" value="grateful">
+                                    <label class="btn btn-outline-success w-100" for="emotion_grateful">🙏 Grateful</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-journal-text"></i> Notes (Optional)
+                            </label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Anything affecting your mood today? Work stress, good news, etc."></textarea>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-check-circle"></i> Save Entry
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mood History & Trends -->
+        <div class="col-lg-6">
+            <!-- Today's Average -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-calendar-day"></i> Today's Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center" id="todaySummary">
+                        <div class="col-3">
+                            <div class="fs-4">😊</div>
+                            <div class="fw-bold" id="todayMood">--</div>
+                            <small class="text-muted">Mood</small>
+                        </div>
+                        <div class="col-3">
+                            <div class="fs-4">⚡</div>
+                            <div class="fw-bold" id="todayEnergy">--</div>
+                            <small class="text-muted">Energy</small>
+                        </div>
+                        <div class="col-3">
+                            <div class="fs-4">😰</div>
+                            <div class="fw-bold" id="todayStress">--</div>
+                            <small class="text-muted">Stress</small>
+                        </div>
+                        <div class="col-3">
+                            <div class="fs-4">🚀</div>
+                            <div class="fw-bold" id="todayMotivation">--</div>
+                            <small class="text-muted">Motivation</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Entries -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Recent Entries</h6>
+                </div>
+                <div class="card-body">
+                    <div id="recentEntries">
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-2">Loading entries...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .mood-selector .btn {
+        transition: all 0.2s;
+    }
+
+    .mood-selector .btn:hover {
+        transform: scale(1.1);
+    }
+
+    .mood-selector .btn-check:checked + .btn {
+        transform: scale(1.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .form-range::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+    }
+
+    .form-range::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+    }
+
+    .mood-entry {
+        border-left: 4px solid #0d6efd;
+        transition: all 0.3s;
+    }
+
+    .mood-entry:hover {
+        background-color: #f8f9fa;
+        transform: translateX(5px);
+    }
+</style>
+
+<script>
+    const energySlider = document.getElementById('energy_level');
+    const stressSlider = document.getElementById('stress_level');
+    const motivationSlider = document.getElementById('motivation');
+    const moodForm = document.getElementById('moodForm');
+
+    // Update slider displays
+    energySlider.addEventListener('input', (e) => {
+        document.getElementById('energyValue').textContent = e.target.value;
+    });
+
+    stressSlider.addEventListener('input', (e) => {
+        document.getElementById('stressValue').textContent = e.target.value;
+    });
+
+    motivationSlider.addEventListener('input', (e) => {
+        document.getElementById('motivationValue').textContent = e.target.value;
+    });
+
+    // Submit mood entry
+    moodForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Collect emotions
+        const emotions = [];
+        document.querySelectorAll('input[id^="emotion_"]:checked').forEach(checkbox => {
+            emotions.push(checkbox.value);
+        });
+
+        // Collect form data
+        const formData = {
+            mood_score: parseInt(document.querySelector('input[name="mood_score"]:checked').value),
+            energy_level: parseInt(energySlider.value),
+            stress_level: parseInt(stressSlider.value),
+            motivation: parseInt(motivationSlider.value),
+            emotions: emotions,
+            notes: document.getElementById('notes').value.trim()
+        };
+
+        try {
+            const response = await fetch('/api/mood/log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Show success message
+                alert('✅ Mood entry logged successfully!');
+
+                // Reset form
+                moodForm.reset();
+                document.getElementById('energyValue').textContent = '5';
+                document.getElementById('stressValue').textContent = '5';
+                document.getElementById('motivationValue').textContent = '5';
+
+                // Reload entries
+                loadRecentEntries();
+                loadTodaySummary();
+
+            } else {
+                alert('❌ Error: ' + (data.error || 'Failed to save mood entry'));
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Error saving mood entry. Please try again.');
+        }
+    });
+
+    // Load recent entries
+    async function loadRecentEntries() {
+        try {
+            const response = await fetch('/api/mood/recent?limit=5');
+            const entries = await response.json();
+
+            const container = document.getElementById('recentEntries');
+
+            if (entries.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">No entries yet. Log your first mood entry above!</p>';
+                return;
+            }
+
+            let html = '';
+            entries.forEach(entry => {
+                const date = new Date(entry.logged_at);
+                const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = date.toLocaleDateString();
+
+                html += `
+                    <div class="mood-entry p-3 mb-2 rounded border">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <strong>${getMoodEmoji(entry.mood_score)} Mood: ${entry.mood_score}/10</strong>
+                                <div class="small text-muted">${dateStr} at ${timeStr}</div>
+                            </div>
+                        </div>
+                        <div class="row g-2 small">
+                            <div class="col-4">⚡ Energy: ${entry.energy_level}/10</div>
+                            <div class="col-4">😰 Stress: ${entry.stress_level}/10</div>
+                            <div class="col-4">🚀 Motivation: ${entry.motivation}/10</div>
+                        </div>
+                        ${entry.emotions ? `<div class="mt-2 small">${JSON.parse(entry.emotions).map(e => getEmotionEmoji(e) + ' ' + e).join(', ')}</div>` : ''}
+                        ${entry.notes ? `<div class="mt-2 small text-muted fst-italic">"${entry.notes}"</div>` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+        } catch (error) {
+            console.error('Error loading entries:', error);
+            document.getElementById('recentEntries').innerHTML = '<p class="text-danger">Error loading entries</p>';
+        }
+    }
+
+    // Load today's summary
+    async function loadTodaySummary() {
+        try {
+            const response = await fetch('/api/mood/today-summary');
+            const summary = await response.json();
+
+            if (summary.count > 0) {
+                document.getElementById('todayMood').textContent = summary.avg_mood.toFixed(1);
+                document.getElementById('todayEnergy').textContent = summary.avg_energy.toFixed(1);
+                document.getElementById('todayStress').textContent = summary.avg_stress.toFixed(1);
+                document.getElementById('todayMotivation').textContent = summary.avg_motivation.toFixed(1);
+            } else {
+                document.getElementById('todayMood').textContent = '--';
+                document.getElementById('todayEnergy').textContent = '--';
+                document.getElementById('todayStress').textContent = '--';
+                document.getElementById('todayMotivation').textContent = '--';
+            }
+
+        } catch (error) {
+            console.error('Error loading summary:', error);
+        }
+    }
+
+    // Helper functions
+    function getMoodEmoji(score) {
+        const emojis = ['', '😫', '😞', '😕', '😐', '😊', '🙂', '😃', '😄', '😁', '🤩'];
+        return emojis[score] || '😊';
+    }
+
+    function getEmotionEmoji(emotion) {
+        const emojis = {
+            happy: '😊', anxious: '😰', focused: '🎯', tired: '😴',
+            excited: '🎉', sad: '😢', calm: '😌', angry: '😠', grateful: '🙏'
+        };
+        return emojis[emotion] || '💭';
+    }
+
+    // Load on page load
+    loadRecentEntries();
+    loadTodaySummary();
+</script>
+{% endblock %}

@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}Health Timeline - Calorie Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-clock-history"></i> Health Timeline</h2>
+            <p class="text-muted">Your complete health journey in one place</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-select" id="dateRange">
+                                <option value="today">Today</option>
+                                <option value="yesterday">Yesterday</option>
+                                <option value="week" selected>This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Event Types</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="checkbox" class="btn-check" id="filterFood" checked>
+                                <label class="btn btn-outline-primary" for="filterFood">
+                                    <i class="bi bi-egg-fried"></i> Food
+                                </label>
+
+                                <input type="checkbox" class="btn-check" id="filterWorkout" checked>
+                                <label class="btn btn-outline-success" for="filterWorkout">
+                                    <i class="bi bi-heart-pulse"></i> Workouts
+                                </label>
+
+                                <input type="checkbox" class="btn-check" id="filterSleep" checked>
+                                <label class="btn btn-outline-info" for="filterSleep">
+                                    <i class="bi bi-moon-stars"></i> Sleep
+                                </label>
+
+                                <input type="checkbox" class="btn-check" id="filterMood" checked>
+                                <label class="btn btn-outline-warning" for="filterMood">
+                                    <i class="bi bi-emoji-smile"></i> Mood
+                                </label>
+
+                                <input type="checkbox" class="btn-check" id="filterBiometric" checked>
+                                <label class="btn btn-outline-danger" for="filterBiometric">
+                                    <i class="bi bi-heart"></i> Biometrics
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-primary w-100" id="refreshTimeline">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body text-center">
+                    <i class="bi bi-fire fs-1 text-primary"></i>
+                    <h3 class="mb-0" id="summaryNetCalories">--</h3>
+                    <p class="text-muted mb-0">Net Calories</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card shadow-sm border-success">
+                <div class="card-body text-center">
+                    <i class="bi bi-activity fs-1 text-success"></i>
+                    <h3 class="mb-0" id="summaryWorkouts">--</h3>
+                    <p class="text-muted mb-0">Workouts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card shadow-sm border-info">
+                <div class="card-body text-center">
+                    <i class="bi bi-moon-stars-fill fs-1 text-info"></i>
+                    <h3 class="mb-0" id="summarySleepHours">--</h3>
+                    <p class="text-muted mb-0">Sleep Hours</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body text-center">
+                    <i class="bi bi-emoji-smile-fill fs-1 text-warning"></i>
+                    <h3 class="mb-0" id="summaryAvgMood">--</h3>
+                    <p class="text-muted mb-0">Avg Mood</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Events</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="timelineContainer" class="p-4">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading timeline...</span>
+                            </div>
+                            <p class="text-muted mt-2">Loading your health timeline...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 60px;
+        margin-bottom: 30px;
+        animation: fadeInUp 0.5s ease-in-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: 0;
+        bottom: -30px;
+        width: 2px;
+        background: #dee2e6;
+    }
+
+    .timeline-item:last-child::before {
+        display: none;
+    }
+
+    .timeline-icon {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        z-index: 1;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .timeline-content {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+
+    .timeline-content:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: translateX(5px);
+    }
+
+    .timeline-date {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+    }
+
+    .timeline-title {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .timeline-details {
+        font-size: 0.9rem;
+        color: #495057;
+    }
+
+    .nutrition-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        margin-right: 5px;
+        margin-bottom: 5px;
+    }
+
+    .event-food .timeline-icon { background: #0d6efd; }
+    .event-workout .timeline-icon { background: #198754; }
+    .event-sleep .timeline-icon { background: #0dcaf0; }
+    .event-mood .timeline-icon { background: #ffc107; }
+    .event-biometric .timeline-icon { background: #dc3545; }
+</style>
+
+<script>
+    // Timeline functionality
+    let currentDateRange = 'week';
+    let activeFilters = {
+        food: true,
+        workout: true,
+        sleep: true,
+        mood: true,
+        biometric: true
+    };
+
+    // Load timeline
+    async function loadTimeline() {
+        const container = document.getElementById('timelineContainer');
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading timeline...</span>
+                </div>
+                <p class="text-muted mt-2">Loading your health timeline...</p>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`/api/health-timeline?range=${currentDateRange}&filters=${JSON.stringify(activeFilters)}`);
+            const data = await response.json();
+
+            if (data.events && data.events.length > 0) {
+                renderTimeline(data.events);
+                updateSummary(data.summary);
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">No events found for this time period.</p>
+                        <p class="text-muted">Start logging your meals, workouts, and health data!</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading timeline:', error);
+            container.innerHTML = `
+                <div class="alert alert-danger m-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Error loading timeline. Please try again.
+                </div>
+            `;
+        }
+    }
+
+    // Render timeline
+    function renderTimeline(events) {
+        const container = document.getElementById('timelineContainer');
+
+        // Group events by date
+        const eventsByDate = {};
+        events.forEach(event => {
+            const date = event.occurred_at.split('T')[0];
+            if (!eventsByDate[date]) {
+                eventsByDate[date] = [];
+            }
+            eventsByDate[date].push(event);
+        });
+
+        let timelineHTML = '<div class="timeline">';
+
+        // Render each date group
+        Object.keys(eventsByDate).sort().reverse().forEach(date => {
+            const dateLabel = formatDate(date);
+            timelineHTML += `<h6 class="text-muted mb-3 mt-4">${dateLabel}</h6>`;
+
+            eventsByDate[date].forEach(event => {
+                timelineHTML += renderEvent(event);
+            });
+        });
+
+        timelineHTML += '</div>';
+        container.innerHTML = timelineHTML;
+    }
+
+    // Render single event
+    function renderEvent(event) {
+        const icons = {
+            food: 'egg-fried',
+            workout: 'heart-pulse',
+            sleep: 'moon-stars',
+            mood: 'emoji-smile',
+            biometric: 'heart'
+        };
+
+        const icon = icons[event.event_type] || 'circle';
+        const time = new Date(event.occurred_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        let detailsHTML = '';
+
+        if (event.event_type === 'food') {
+            detailsHTML = `
+                <div class="timeline-details">
+                    <span class="nutrition-badge bg-primary text-white">${event.data.calories} cal</span>
+                    <span class="nutrition-badge bg-success text-white">${event.data.protein}g protein</span>
+                    <span class="nutrition-badge bg-warning text-dark">${event.data.carbs}g carbs</span>
+                    <span class="nutrition-badge bg-danger text-white">${event.data.fat}g fat</span>
+                </div>
+            `;
+        } else if (event.event_type === 'workout') {
+            detailsHTML = `
+                <div class="timeline-details">
+                    <p class="mb-1">⏱️ Duration: ${event.duration_minutes} minutes</p>
+                    <p class="mb-0">🔥 Calories burned: ${Math.abs(event.calories_net)} cal</p>
+                </div>
+            `;
+        } else if (event.event_type === 'sleep') {
+            detailsHTML = `
+                <div class="timeline-details">
+                    <p class="mb-1">⏰ Duration: ${Math.round(event.duration_minutes / 60 * 10) / 10} hours</p>
+                    ${event.data.sleep_score ? `<p class="mb-0">⭐ Sleep score: ${event.data.sleep_score}/100</p>` : ''}
+                </div>
+            `;
+        } else if (event.event_type === 'mood') {
+            detailsHTML = `
+                <div class="timeline-details">
+                    <p class="mb-1">😊 Mood: ${event.data.mood_score}/10</p>
+                    <p class="mb-0">⚡ Energy: ${event.data.energy_level}/10</p>
+                </div>
+            `;
+        } else if (event.event_type === 'biometric') {
+            detailsHTML = `
+                <div class="timeline-details">
+                    ${event.data.weight_kg ? `<p class="mb-1">⚖️ Weight: ${event.data.weight_kg} kg</p>` : ''}
+                    ${event.data.resting_heart_rate ? `<p class="mb-0">❤️ Resting HR: ${event.data.resting_heart_rate} bpm</p>` : ''}
+                </div>
+            `;
+        }
+
+        return `
+            <div class="timeline-item event-${event.event_type}">
+                <div class="timeline-icon">
+                    <i class="bi bi-${icon}"></i>
+                </div>
+                <div class="timeline-content">
+                    <div class="timeline-date">
+                        <i class="bi bi-clock"></i> ${time}
+                        ${event.source ? `<span class="badge bg-secondary ms-2">${event.source}</span>` : ''}
+                    </div>
+                    <div class="timeline-title">
+                        ${event.title || formatEventType(event.event_type)}
+                    </div>
+                    ${detailsHTML}
+                </div>
+            </div>
+        `;
+    }
+
+    // Update summary cards
+    function updateSummary(summary) {
+        document.getElementById('summaryNetCalories').textContent = summary.net_calories || 0;
+        document.getElementById('summaryWorkouts').textContent = summary.workout_count || 0;
+        document.getElementById('summarySleepHours').textContent = summary.avg_sleep_hours ? summary.avg_sleep_hours.toFixed(1) + 'h' : '--';
+        document.getElementById('summaryAvgMood').textContent = summary.avg_mood ? summary.avg_mood.toFixed(1) + '/10' : '--';
+    }
+
+    // Format date
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        if (date.toDateString() === today.toDateString()) {
+            return 'Today';
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            return 'Yesterday';
+        } else {
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+    }
+
+    // Format event type
+    function formatEventType(type) {
+        return type.charAt(0).toUpperCase() + type.slice(1);
+    }
+
+    // Event listeners
+    document.getElementById('dateRange').addEventListener('change', (e) => {
+        currentDateRange = e.target.value;
+        loadTimeline();
+    });
+
+    document.getElementById('refreshTimeline').addEventListener('click', () => {
+        loadTimeline();
+    });
+
+    // Filter checkboxes
+    ['filterFood', 'filterWorkout', 'filterSleep', 'filterMood', 'filterBiometric'].forEach(id => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            const filterType = id.replace('filter', '').toLowerCase();
+            activeFilters[filterType] = e.target.checked;
+            loadTimeline();
+        });
+    });
+
+    // Load timeline on page load
+    loadTimeline();
+</script>
+{% endblock %}
