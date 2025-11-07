@@ -4,7 +4,21 @@
 
 {% block head %}
 <!-- Marked.js for markdown rendering -->
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+<script>
+// Configure marked.js for proper table rendering
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof marked !== 'undefined') {
+        marked.use({
+            gfm: true,
+            breaks: true,
+            pedantic: false,
+            mangle: false,
+            headerIds: false
+        });
+    }
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -320,75 +334,145 @@
     /* Markdown styling for AI responses */
     .message-text table {
         width: 100%;
-        border-collapse: collapse;
-        margin: 10px 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 15px 0;
         font-size: 0.9rem;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
     .message-text table th,
     .message-text table td {
-        border: 1px solid #dee2e6;
-        padding: 8px;
+        border: none;
+        border-bottom: 1px solid #dee2e6;
+        padding: 12px;
         text-align: left;
     }
 
     .message-text table th {
-        background-color: #f8f9fa;
+        background: linear-gradient(to bottom, #34d399, #2bb889);
+        color: white;
         font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
     }
 
-    .message-text table tr:nth-child(even) {
+    .message-text table tbody tr {
+        transition: background-color 0.2s;
+    }
+
+    .message-text table tbody tr:hover {
+        background-color: #f0fdf4;
+    }
+
+    .message-text table tbody tr:nth-child(even) {
         background-color: #f8f9fa;
+    }
+
+    .message-text table tbody tr:last-child td {
+        border-bottom: none;
     }
 
     .message-text h1, .message-text h2, .message-text h3,
     .message-text h4, .message-text h5, .message-text h6 {
-        margin-top: 15px;
-        margin-bottom: 10px;
+        margin-top: 20px;
+        margin-bottom: 12px;
         font-weight: 600;
+        color: #1f2937;
+    }
+
+    .message-text h1 {
+        font-size: 1.6rem;
+        border-bottom: 3px solid #34d399;
+        padding-bottom: 8px;
     }
 
     .message-text h2 {
-        font-size: 1.3rem;
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 5px;
+        font-size: 1.4rem;
+        border-bottom: 2px solid #34d399;
+        padding-bottom: 6px;
+        color: #059669;
     }
 
     .message-text h3 {
+        font-size: 1.2rem;
+        color: #059669;
+    }
+
+    .message-text h4 {
         font-size: 1.1rem;
+    }
+
+    .message-text p {
+        margin-bottom: 12px;
+        line-height: 1.6;
     }
 
     .message-text ul, .message-text ol {
         margin-left: 20px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        line-height: 1.6;
+    }
+
+    .message-text li {
+        margin-bottom: 6px;
+    }
+
+    .message-text strong {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .message-text em {
+        font-style: italic;
+        color: #4b5563;
     }
 
     .message-text code {
-        background-color: #f8f9fa;
-        padding: 2px 6px;
-        border-radius: 3px;
-        font-family: 'Courier New', monospace;
+        background-color: #f3f4f6;
+        color: #dc2626;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: 'Courier New', Consolas, monospace;
         font-size: 0.9em;
+        border: 1px solid #e5e7eb;
     }
 
     .message-text pre {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 5px;
+        background-color: #1f2937;
+        color: #f9fafb;
+        padding: 16px;
+        border-radius: 8px;
         overflow-x: auto;
+        margin: 15px 0;
+        border: 1px solid #374151;
+    }
+
+    .message-text pre code {
+        background-color: transparent;
+        color: inherit;
+        padding: 0;
+        border: none;
+        font-size: 0.85em;
     }
 
     .message-text blockquote {
-        border-left: 4px solid #6c757d;
-        padding-left: 15px;
-        margin: 10px 0;
-        color: #6c757d;
+        border-left: 4px solid #34d399;
+        background-color: #f0fdf4;
+        padding: 12px 15px;
+        margin: 15px 0;
+        color: #065f46;
+        border-radius: 4px;
     }
 
     .message-text hr {
-        margin: 20px 0;
+        margin: 25px 0;
         border: 0;
-        border-top: 1px solid #dee2e6;
+        border-top: 2px solid #e5e7eb;
     }
 </style>
 
@@ -561,16 +645,14 @@
 
     // Format message with full markdown support
     function formatMessage(text) {
-        // Use marked.js for proper markdown rendering
+        // Use marked.js for proper markdown rendering (configured globally in head)
         if (typeof marked !== 'undefined') {
-            // Configure marked for safe rendering
-            marked.setOptions({
-                breaks: true,
-                gfm: true,
-                headerIds: false,
-                mangle: false
-            });
-            return marked.parse(text);
+            try {
+                return marked.parse(text);
+            } catch (e) {
+                console.error('Markdown parsing error:', e);
+                return text.replace(/\n/g, '<br>');
+            }
         }
 
         // Fallback if marked.js not loaded
